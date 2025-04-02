@@ -179,7 +179,7 @@ six_core_PL.add_launch_field(
     launch_width="Diameter_SM_Core",
     launch_height="Diameter_SM_Core",
     launch_position=f"Core_Ring_Radius*cos({port_num}*Angular_Sep+Rotate_View)",
-    launch_position_y=f"Core_Ring_Radius*cos({port_num}*Angular_Sep+Rotate_View)",
+    launch_position_y=f"Core_Ring_Radius*sin({port_num}*Angular_Sep+Rotate_View)",
 )
 
 six_core_PL.write("output/six_core_PL.ind")
