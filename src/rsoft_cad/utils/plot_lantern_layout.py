@@ -1,59 +1,38 @@
-import numpy as np
+from lantern_layout import lantern_layout, find_scale_factor
 import matplotlib.pyplot as plt
 
 
-def lantern_layout(cladding_dia, n):
+def visualize_lantern(n, cladding_dia=125, show_scale_factor_plot=True):
     """
-    Computes the positions of 5 circles arranged in a circular fashion
-    around a larger reference circle.
+    Visualize a lantern layout with n cladding circles.
 
     Parameters:
-        cladding_dia (float): Diameter of the smaller circles (cladding diameter).
+    -----------
+    n : int
+        Number of cladding circles
+    cladding_dia : float
+        Diameter of the cladding circles in microns (default: 125)
+    show_scale_factor_plot : bool
+        If True, shows the scale factor vs radius plot (default: True)
 
     Returns:
-        tuple: (R, centres_x, centres_y) where:
-            R (float): Radius of the reference circle.
-            centres_x (ndarray): x-coordinates of cladding circle centres.
-            centres_y (ndarray): y-coordinates of cladding circle centres.
+    --------
+    tuple
+        (fig, ax) for the main lantern layout plot
+        (fig1, ax1) for the scale factor plot (if show_scale_factor_plot=True)
     """
-    # Small circle (cladding) radius
-    r = cladding_dia / 2
+    from lantern_layout import lantern_layout, find_scale_factor
+    import matplotlib.pyplot as plt
 
-    # Compute the radius of the larger circle
-    R = cladding_dia / (2 * np.sin(np.pi / n))
-
-    # Angles for placing the circles
-    angles = np.linspace(0, 2 * np.pi, n, endpoint=False)
-
-    # Centre positions of small circles
-    centres_x = R * np.cos(angles)
-    centres_y = R * np.sin(angles)
-
-    return R, centres_x, centres_y
-
-
-def find_scale_factor(start_dia, n):
-    scale_factor = np.arange(1, 30, 0.1)
-    R_array = np.zeros(len(scale_factor))
-
-    for i, scale in enumerate(scale_factor):
-        R_array[i], _, _ = lantern_layout(start_dia / scale, n=n)
-
-    return scale_factor, R_array
-
-
-if __name__ == "__main__":
-
-    # Example usage and plotting
-    n = 5
-    cladding_dia = 125  # Define the cladding diameter
+    # Calculate lantern layout
     R, centres_x, centres_y = lantern_layout(cladding_dia, n)
 
+    # Print information
     print(f"Radius of lantern modes: {R:.2f} micron")
     print(f"Radius of center core: {R - (cladding_dia / 2):.2f} micron")
     print(f"Radius of capillary: {R + (cladding_dia / 2):.2f} micron")
 
-    # Create plot
+    # Create main plot
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.set_xlim(-R - cladding_dia, R + cladding_dia)
     ax.set_ylim(-R - cladding_dia, R + cladding_dia)
@@ -74,7 +53,6 @@ if __name__ == "__main__":
         fill=False,
         linestyle="dashed",
     )
-
     capillary = plt.Circle(
         (0, 0),
         R + (cladding_dia / 2),
@@ -100,11 +78,11 @@ if __name__ == "__main__":
     ax.legend()
     plt.grid(True, linestyle="--", alpha=0.5)
 
-    fig1, ax1 = plt.subplots(figsize=(6, 6))
-    scale_factor, radius = find_scale_factor(start_dia=125, n=6)
-    ax1.plot(scale_factor, radius, ".")
-    ax1.set_ylabel("Cladding diameter (micron)")
-    ax1.set_xlabel("Scale factor")
-    ax1.grid(True)
+    return (fig, ax)
 
+
+# Example usage:
+if __name__ == "__main__":
+    # Visualize a 5-fiber lantern with default cladding diameter (125 microns)
+    fig, ax = visualize_lantern(n=5)
     plt.show()

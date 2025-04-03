@@ -4,50 +4,25 @@
 
 This repository contains tools for designing, simulating, and analysing photonic lanterns - specialised optical components that enable efficient coupling between multimode and single-mode optical systems.
 
+## Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/rsoft_cad.git
+cd rsoft_cad
+
+# Install in development mode
+pip install -e .
+```
+
 ## Overview
 
 Photonic lanterns are tapered optical structures that transform a multimode waveguide into multiple single-mode waveguides arranged in a specific geometry. These components are crucial in various applications including telecommunications, astronomy, and sensing.
 
-## Files in this Repository
 
-### 1. `lantern_layout.py`
+## Core Modules
 
-This script provides functionality to calculate and visualise the geometric arrangement of fibres in a photonic lantern.
-
-**Key Features:**
-- Calculate the optimal radius for arranging `n` cladding circles in a lantern layout
-- Generate visualisations of the lantern cross-section
-- Analyse scaling relationships between cladding diameter and lantern radius
-
-**Usage Example:**
-```python
-# Calculate layout for 5 fibres with 125μm cladding diameter
-R, centres_x, centres_y = lantern_layout(cladding_dia=125, n=5)
-
-# Display key dimensions
-print(f"Radius of lantern modes: {R:.2f} micron")
-print(f"Radius of centre core: {R - (cladding_dia / 2):.2f} micron")
-print(f"Radius of capillary: {R + (cladding_dia / 2):.2f} micron")
-```
-
-### 2. `photonic_lantern.py`
-
-This script defines a complete photonic lantern structure with tapered cores and cladding for simulation in RSoft.
-
-**Key Features:**
-- Configurable parameters for lantern design (number of cores, taper length, etc.)
-- Creates a six-core photonic lantern with centre core plus five surrounding cores
-- Automatically generates the tapered structure with proper refractive indices
-- Includes launch field setup for simulation
-
-**Configuration Parameters:**
-- `Num_Cores_Ring`: Number of cores in the outer ring (default: 5)
-- `Taper_Length`: Length of the taper section in microns (default: 55000)
-- `Taper_Slope`: Taper ratio (default: 14.9)
-- `Diameter_SM_Clad`: Diameter of single-mode fibre cladding (default: 125μm)
-- `Diameter_SM_Core`: Diameter of single-mode fibre core (default: 8.2μm)
-
-### 3. `rsoft_circuit.py`
+### `rsoft_cad.rsoft_circuit.py`
 
 This utility class provides a Python interface for creating RSoft circuit files. It abstracts away the syntax of RSoft's circuit definition format.
 
@@ -61,23 +36,55 @@ This utility class provides a Python interface for creating RSoft circuit files.
 - `add_launch_field()`: Configure input light sources
 - `write()`: Generate the RSoft .ind file
 
+
+## Configuration System
+
+The configuration system allows for flexible photonic lantern design without modifying the core code.
+
+### Configuration Structure
+
+The configuration file is organized into the following sections:
+
+1. `pl_params`: Basic parameters for the photonic lantern design
+2. `center_core_segment`: Properties of the center core
+3. `center_cladding_segment`: Properties of the center cladding
+4. `core_segment`: Template for surrounding cores
+5. `cladding_segment`: Template for surrounding claddings
+6. `capillary_segment`: Properties of the outer capillary
+7. `launch_field_config`: Launch field parameters
+8. `rsoft_circuit_config`: RSoft circuit configuration
+
+### Parameter Path Format
+
+When modifying parameters with `modify_config.py`, use dot notation to specify the parameter path:
+
+- `pl_params.Num_Cores_Ring`: Number of cores in the ring
+- `core_segment.begin.height`: Height of the core segment at the beginning
+- `launch_field_config.port_num`: Port number for the launch field
+
 ## Getting Started
 
-1. Install dependencies:
-   ```
-   pip install numpy matplotlib
-   ```
-
-2. To visualise a lantern layout:
-   ```
-   python lantern_layout.py
+1. Install the package:
+   ```bash
+   pip install -e .
    ```
 
-3. To generate an RSoft circuit file for a six-core photonic lantern:
+2. Run an example photonic lantern simulation:
+   ```bash
+   python -m examples.photonic_lantern
    ```
-   python photonic_lantern.py
+
+3. To generate an RSoft circuit file with the default configuration:
+   ```bash
+   python -m rsoft_cad.refactored_photonic_lantern
    ```
    This will create a file at `output/six_core_PL.ind`
+
+4. To customize your photonic lantern design:
+   ```bash
+   python -m rsoft_cad.utils.modify_config --param "pl_params.Num_Cores_Ring" "6" --output config/custom_config.json
+   python -m rsoft_cad.refactored_photonic_lantern --config config/custom_config.json --output output/custom_lantern.ind
+   ```
 
 ## Design Principles
 
@@ -89,11 +96,18 @@ The photonic lantern is designed with the following principles:
 ## Notes on Simulation
 
 When running simulations:
-- The launch field is configured for the second port in the outer ring
-- The taper slope of 14.9 represents a gradual transition to minimise losses
+- The launch field is configured for the specified port in the outer ring
+- The taper slope represents a gradual transition to minimise losses
 - All cores and cladding taper linearly along the z-axis
 - The surrounding capillary provides structural support and index guiding
 
 ## File Format
 
 The generated `.ind` files follow RSoft's circuit definition format, with parameters, segments, pathways, monitors, and launch fields defined in blocks.
+
+
+## Requirements
+
+- Python 3.6+
+- NumPy 2.0+
+- Matplotlib 3.0+

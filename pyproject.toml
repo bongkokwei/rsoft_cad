@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rsoft_cad"
+version = "0.1.0"
+description = "This repository contains tools for designing, simulating, and analysing photonic lanterns "
+readme = "README.md"
+authors = [{name = "Kok-Wei Bong", email = "bongkokwei@gmail.com"}]
+requires-python = ">=3.6"
+dependencies = [
+    "numpy>=1.2",
+    "matplotlib>=2.0",
+]
