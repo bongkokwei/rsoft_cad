@@ -9,7 +9,7 @@ import os
 from copy import deepcopy
 
 
-def load_config(config_file="complete_pl_config.json"):
+def load_config(config_file="config/complete_pl_config.json"):
     """Load configuration from JSON file"""
     try:
         with open(config_file, "r") as f:
@@ -112,8 +112,8 @@ def main():
     parser.add_argument(
         "--input",
         "-i",
-        default="complete_pl_config.json",
-        help="Input configuration file (default: complete_pl_config.json)",
+        default="config/complete_pl_config.json",
+        help="Input configuration file (default: config/complete_pl_config.json)",
     )
     parser.add_argument(
         "--output",
