@@ -74,16 +74,10 @@ When modifying parameters with `modify_config.py`, use dot notation to specify t
    python -m examples.photonic_lantern
    ```
 
-3. To generate an RSoft circuit file with the default configuration:
-   ```bash
-   python -m rsoft_cad.refactored_photonic_lantern
-   ```
-   This will create a file at `output/six_core_PL.ind`
-
-4. To customize your photonic lantern design:
+3. To customize your photonic lantern design:
    ```bash
    python -m rsoft_cad.utils.modify_config --param "pl_params.Num_Cores_Ring" "6" --output config/custom_config.json
-   python -m rsoft_cad.refactored_photonic_lantern --config config/custom_config.json --output output/custom_lantern.ind
+   python -m examples.photonic_lantern --config config/custom_config.json --output output/custom_lantern.ind
    ```
 
 ## Design Principles
