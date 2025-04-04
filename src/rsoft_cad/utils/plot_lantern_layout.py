@@ -1,8 +1,8 @@
-from lantern_layout import lantern_layout, find_scale_factor
+from rsoft_cad.utils.lantern_layout import lantern_layout
 import matplotlib.pyplot as plt
 
 
-def visualize_lantern(n, cladding_dia=125, show_scale_factor_plot=True):
+def visualise_lantern(n, cladding_dia=125, show_scale_factor_plot=True):
     """
     Visualize a lantern layout with n cladding circles.
 
@@ -21,8 +21,6 @@ def visualize_lantern(n, cladding_dia=125, show_scale_factor_plot=True):
         (fig, ax) for the main lantern layout plot
         (fig1, ax1) for the scale factor plot (if show_scale_factor_plot=True)
     """
-    from lantern_layout import lantern_layout, find_scale_factor
-    import matplotlib.pyplot as plt
 
     # Calculate lantern layout
     R, centres_x, centres_y = lantern_layout(cladding_dia, n)
@@ -84,5 +82,5 @@ def visualize_lantern(n, cladding_dia=125, show_scale_factor_plot=True):
 # Example usage:
 if __name__ == "__main__":
     # Visualize a 5-fiber lantern with default cladding diameter (125 microns)
-    fig, ax = visualize_lantern(n=5)
+    fig, ax = visualise_lantern(n=5)
     plt.show()

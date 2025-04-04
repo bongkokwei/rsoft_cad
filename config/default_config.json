@@ -4,13 +4,16 @@
         "Angular_Sep": "360 / Num_Cores_Ring",
         "Rotate_View": 0,
         "Taper_Length": 55000,
-        "Taper_Slope": 14.9,
+        "Taper_Slope": 1,
         "Diameter_MM": 10,
-        "Diameter_SM_Clad": 125,
         "Core_Ring_Radius": "Diameter_SM_Clad / (2 * sin(180 / Num_Cores_Ring))",
         "Core_Ring_Diameter": "2 * Core_Ring_Radius",
         "Diameter_Center_Clad": "Core_Ring_Diameter-Diameter_SM_Clad",
-        "Capillary_Diameter": "Core_Ring_Diameter+Diameter_SM_Clad",
+        "Capillary_Diameter": "Core_Ring_Diameter+Diameter_SM_Clad"
+    },
+    
+    "fiber_params": {
+        "Diameter_SM_Clad": 125,
         "Diameter_SM_Core": 8.2,
         "Index_Capillary": 1.4345,
         "Index_SM1500G80_Clad_1550": 1.44399,
@@ -22,6 +25,7 @@
         "Delta_Clad": "Index_SMF28_Clad_1550 - Index_Capillary",
         "Delta_Core": "Index_SMF28_Core_1550 - Index_Capillary"
     },
+
     "center_core_segment": {
         "structure": "STRUCT_FIBER",
         "comp_name": "CENTER_CORE",
@@ -135,5 +139,6 @@
         "grid_size": 1,
         "grid_size_y": 1,
         "slice_display_mode": "DISPLAY_CONTOURMAPXZ"
+
     }
 }

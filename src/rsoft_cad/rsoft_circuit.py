@@ -10,7 +10,7 @@ class RSoftCircuit:
             "cad_aspectratio": 1,
             "delta": 0.1,
             "dimension": 3,
-            "eim": 1,
+            "eim": 0,
             "free_space_wavelength": 1.55,
             "height": 1,
             "k0": "(2 * pi) / free_space_wavelength",
@@ -51,9 +51,7 @@ class RSoftCircuit:
         # Default segment properties
         segment_props = {
             "structure": "STRUCT_FIBER",
-            "comp_name": "Core",
-            "width_taper": "NONE",
-            "height_taper": "NONE",
+            "comp_name": "CORE",
             "begin.x": 0,
             "begin.y": 0,
             "begin.z": 0,
@@ -137,14 +135,13 @@ class RSoftCircuit:
         # Default launch field properties
         launch_props = {
             "launch_pathway": pathway_id,
-            "launch_type": "LAUNCH_FILE",
-            "launch_random_set": 6,
+            "launch_type": "LAUNCH_GAUSSIAN",
+            "launch_random_set": 69,
             "launch_align_file": 1,
             "launch_width": 0,
             "launch_height": 0,
             "launch_position": 0,
             "launch_position_y": 0,
-            "launch_file": "SMF28_LP01.m00",
             "launch_polarizer": 2,
             "launch_polarizer_angle": 45,
         }
