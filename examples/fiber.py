@@ -9,13 +9,14 @@ class OpticalFiber(RSoftCircuit):
         self.fiber_props = {
             "core_dia": 8.2,  # Core diameter in microns
             "cladding_dia": 125.0,  # Cladding diameter in microns
-            "core_index": 1.4682,  # Core refractive index
-            "cladding_index": 1.4628,  # Cladding refractive index
+            "core_index": 1,  # Core refractive index
+            "cladding_index": 1,  # Cladding refractive index
             "bg_index": 1,
             "length": 1000,  # Fiber length in microns
             "pos_x": 0,  # X position in microns
             "pos_y": 0,  # Y position in microns
             "pos_z": 0,  # Z position in microns
+            "taper_factor": 1,
         }
 
         # Update with any properties provided
@@ -27,7 +28,7 @@ class OpticalFiber(RSoftCircuit):
         self.update_global_params(
             eim=0,
             structure="STRUCT_FIBER",
-            background_index=self.fiber_props["cladding_index"],
+            background_index=self.fiber_props["bg_index"],
         )
 
     def set_cladding_dia(self, cladding_dia):
@@ -83,7 +84,24 @@ class OpticalFiber(RSoftCircuit):
 
         self.fiber_props["cladding_index"] = cladding_index
         # Update background index to match cladding
-        self.update_global_params(background_index=cladding_index)
+        # self.update_global_params(background_index=cladding_index)
+        return True
+
+    def set_background_index(self, bg_index):
+        """
+        Set the background refractive index with validation.
+        Parameters:
+        bg_index (float): Background refractive index
+        Returns:
+        bool: True if successful, False otherwise
+        """
+        # Data validation: core index must be higher than background index
+        if bg_index >= self.fiber_props.get("core_index", float("inf")):
+            print("Error: Background index must be lower than core index")
+            return False
+        self.fiber_props["bg_index"] = bg_index
+        # Update cladding index to match background
+        self.update_global_params(background_index=bg_index)
         return True
 
     def set_core_index(self, core_index):
@@ -153,7 +171,7 @@ class OpticalFiber(RSoftCircuit):
         # Calculate delta based on refractive indices
         # Delta is the relative refractive index difference: (n1²-n2²)/(2*n1²)
         n1 = self.fiber_props["core_index"]
-        n2 = self.fiber_props["cladding_index"]
+        n2 = self.fiber_props["bg_index"]
         delta = n1 - n2
 
         # Default segment properties
@@ -165,11 +183,23 @@ class OpticalFiber(RSoftCircuit):
             "begin.height": self.fiber_props["core_dia"],
             "begin.width": self.fiber_props["core_dia"],
             "begin.delta": delta,
+            "end.x": self.fiber_props["pos_x"] / self.fiber_props["taper_factor"],
+            "end.y": self.fiber_props["pos_y"] / self.fiber_props["taper_factor"],
             "end.z": self.fiber_props["length"],
-            "end.height": self.fiber_props["core_dia"],
-            "end.width": self.fiber_props["core_dia"],
+            "end.height": self.fiber_props["core_dia"]
+            / self.fiber_props["taper_factor"],
+            "end.width": self.fiber_props["core_dia"]
+            / self.fiber_props["taper_factor"],
             "end.delta": delta,
         }
+
+        if self.fiber_props["taper_factor"] > 1:
+            self.fiber_props.update(
+                width_taper="TAPER_LINEAR",
+                height_taper="TAPER_LINEAR",
+                position_y_taper="TAPER_LINEAR",
+                position_taper="TAPER_LINEAR",
+            )
 
         return self.add_segment(**fiber_props)
 
@@ -185,7 +215,7 @@ class OpticalFiber(RSoftCircuit):
         """
         # Calculate delta based on refractive indices
         # Delta is the relative refractive index difference: (n1²-n2²)/(2*n1²)
-        n1 = self.fiber_props["core_index"]
+        n1 = self.fiber_props["cladding_index"]
         n_bg = self.fiber_props["bg_index"]
         delta = n1 - n_bg
 
@@ -198,11 +228,23 @@ class OpticalFiber(RSoftCircuit):
             "begin.height": self.fiber_props["cladding_dia"],
             "begin.width": self.fiber_props["cladding_dia"],
             "begin.delta": delta,
+            "end.x": self.fiber_props["pos_x"] / self.fiber_props["taper_factor"],
+            "end.y": self.fiber_props["pos_y"] / self.fiber_props["taper_factor"],
             "end.z": self.fiber_props["length"],
-            "end.height": self.fiber_props["cladding_dia"],
-            "end.width": self.fiber_props["cladding_dia"],
+            "end.height": self.fiber_props["cladding_dia"]
+            / self.fiber_props["taper_factor"],
+            "end.width": self.fiber_props["cladding_dia"]
+            / self.fiber_props["taper_factor"],
             "end.delta": delta,
         }
+
+        if self.fiber_props["taper_factor"] > 1:
+            self.fiber_props.update(
+                width_taper="TAPER_LINEAR",
+                height_taper="TAPER_LINEAR",
+                position_y_taper="TAPER_LINEAR",
+                position_taper="TAPER_LINEAR",
+            )
 
         return self.add_segment(**cladding_props)
 

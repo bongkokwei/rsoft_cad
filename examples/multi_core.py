@@ -25,6 +25,16 @@ class HexagonalMCF(OpticalFiber):
             {k: v for k, v in prop_dict.items() if k in self.mcf_props}
         )
 
+        self.update_global_params(
+            cad_aspectratio_x=50,
+            cad_aspectratio_y=50,
+            background_index=1,
+            grid_size=1,
+            grid_size_y=1,
+            fem_nev=3,  # Number of modes to find
+            sim_tool="ST_FEMSIM",
+        )
+
     def set_num_rings(self, num_rings):
         """
         Set the number of hexagonal rings around the central core.
@@ -89,9 +99,15 @@ class HexagonalMCF(OpticalFiber):
         num_rings = self.mcf_props["num_rings"]
         spacing_factor = self.mcf_props["spacing_factor"]
 
+        effective_spacing = (
+            self.fiber_props["cladding_dia"] / core_dia
+        ) * spacing_factor
+
         # Call the hexagonal layout function
         centers_x, centers_y = hexagonal_fiber_layout(
-            core_dia, num_rings, spacing_factor
+            core_dia,
+            num_rings,
+            effective_spacing,
         )
 
         return centers_x, centers_y
@@ -113,6 +129,10 @@ class HexagonalMCF(OpticalFiber):
         # Reset the list of core IDs
         self.mcf_props["all_core_ids"] = []
 
+        """NEED TO CHANGE THIS"""
+        self.set_length(55000)
+        self.fiber_props["taper_factor"] = 1
+
         # Create each fiber core
         for i, (x, y) in enumerate(zip(centers_x, centers_y)):
             # Generate unique IDs for this core
@@ -128,8 +148,10 @@ class HexagonalMCF(OpticalFiber):
             original_y = self.fiber_props["pos_y"]
 
             # Set position for this core
-            self.fiber_props["pos_x"] = original_x + x
-            self.fiber_props["pos_y"] = original_y + y
+            # self.fiber_props["pos_x"] = original_x + x
+            # self.fiber_props["pos_y"] = original_y + y
+
+            self.set_pos(original_x + x, original_y + y)
 
             # Apply any custom properties for this core
             original_props = {}
@@ -217,8 +239,9 @@ class HexagonalMCF(OpticalFiber):
         # Set standard SMF-28 parameters for each core
         self.set_core_dia(10.4)
         self.set_cladding_dia(125.0)
-        self.set_core_index(1.4682)
-        self.set_cladding_index(1.4628)
+        self.set_core_index(1.45213)
+        self.set_cladding_index(1.44692)
+        self.set_background_index(1.4345)
         self.set_length(10000)  # 1mm length
 
         # Create the MCF
