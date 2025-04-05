@@ -149,7 +149,7 @@ def main():
     parser.add_argument(
         "--output",
         "-o",
-        default="output/six_core_PL.ind",
+        default="output/six_core_PL/six_core_PL.ind",
         help="Output file path (default: output/six_core_PL.ind)",
     )
 

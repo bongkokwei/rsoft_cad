@@ -32,7 +32,7 @@ class HexagonalMCF(OpticalFiber):
             grid_size=1,
             grid_size_y=1,
             fem_nev=3,  # Number of modes to find
-            sim_tool="ST_FEMSIM",
+            sim_tool="ST_BEAMPROP",
         )
 
     def set_num_rings(self, num_rings):
@@ -129,10 +129,6 @@ class HexagonalMCF(OpticalFiber):
         # Reset the list of core IDs
         self.mcf_props["all_core_ids"] = []
 
-        """NEED TO CHANGE THIS"""
-        self.set_length(55000)
-        self.fiber_props["taper_factor"] = 1
-
         # Create each fiber core
         for i, (x, y) in enumerate(zip(centers_x, centers_y)):
             # Generate unique IDs for this core
@@ -219,7 +215,12 @@ class HexagonalMCF(OpticalFiber):
         return self
 
     def create_standard_hexagonal_mcf(
-        self, base_id="MCF", num_rings=2, spacing_factor=1.05
+        self,
+        base_id="MCF",
+        num_rings=2,
+        spacing_factor=1.05,
+        taper_length=55000,
+        taper_factor=15,
     ):
         """
         Create a standard hexagonal MCF with default parameters.
@@ -237,12 +238,13 @@ class HexagonalMCF(OpticalFiber):
         self.set_spacing_factor(spacing_factor)
 
         # Set standard SMF-28 parameters for each core
+        self.set_taper_factor(taper_factor)
         self.set_core_dia(10.4)
         self.set_cladding_dia(125.0)
         self.set_core_index(1.45213)
         self.set_cladding_index(1.44692)
         self.set_background_index(1.4345)
-        self.set_length(10000)  # 1mm length
+        self.set_length(taper_length)  # 1mm length
 
         # Create the MCF
         self.create_hexagonal_mcf(base_id=base_id)
@@ -254,10 +256,11 @@ class HexagonalMCF(OpticalFiber):
 if __name__ == "__main__":
     # Create a standard hexagonal MCF with 2 rings
     mcf = HexagonalMCF()
-    mcf.create_standard_hexagonal_mcf(num_rings=1)
+    mcf.create_standard_hexagonal_mcf(num_rings=1, taper_factor=15)
 
     # Print the number of cores
     print(f"Created MCF with {mcf.get_core_count()} cores")
 
     # Write to file
-    mcf.write(f"output/hex_{mcf.get_core_count()}_cores_mcf.ind")
+    file_name = f"hex_{mcf.get_core_count()}_cores_mcf"
+    mcf.write(f"output/{file_name}/{file_name}.ind")

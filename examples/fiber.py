@@ -158,6 +158,21 @@ class OpticalFiber(RSoftCircuit):
 
         return True
 
+    def set_taper_factor(self, taper_factor):
+        """
+        Set the taper factor of the fiber
+
+        Parameters:
+        taper_factor (float): Coefficient that linearly tapers a fiber
+
+        Returns:
+        bool: True if successful, False otherwise
+        """
+
+        self.fiber_props.update(taper_factor=taper_factor)
+
+        return True
+
     def add_core_segment(self, segment_id=None, core_id="CORE"):
         """
         Add a fiber segment with core and cladding based on fiber properties.
