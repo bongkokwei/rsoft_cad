@@ -307,10 +307,9 @@ def main():
     # Print basic info
     print(f"Created MCF with {mcf.get_core_count()} cores")
 
-    # Save to file if requested
-    if args.output:
-        mcf.save_to_file(args.output)
-        print(f"Core coordinates saved to {args.output}")
+    # Write to file
+    file_name = f"hex_{mcf.get_core_count()}_cores_mcf"
+    mcf.write(f"output/{file_name}/{file_name}.ind")
 
 
 if __name__ == "__main__":
