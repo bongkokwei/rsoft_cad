@@ -59,6 +59,32 @@ def hexagonal_fiber_layout(fiber_dia, num_rings=3, spacing_factor=1.0):
     return np.array(centers_x), np.array(centers_y)
 
 
+def calculate_capillary_diameter(fiber_dia, num_rings=3, spacing_factor=1.0):
+    """
+    Calculate the diameter of the capillary that fits all fibers in a hexagonal packing.
+
+    Parameters:
+        fiber_dia (float): Diameter of each fiber
+        num_rings (int): Number of rings in the hexagonal packing
+        spacing_factor (float): Factor to adjust spacing between fibers (1.0 = touching)
+
+    Returns:
+        float: Diameter of the encompassing circle
+    """
+    # In a hexagonal packing, the most distant fibers are at the corners of the hexagon
+    # For spacing_factor=1.0 (touching fibers), the distance from center to corner of nth ring is:
+    # distance_to_corner = num_rings * fiber_dia
+
+    # For any spacing factor, this distance becomes:
+    distance_to_corner = num_rings * fiber_dia * spacing_factor
+
+    # To get the radius of the encompassing circle, add one fiber radius
+    capillary_radius = distance_to_corner + (fiber_dia / 2)
+
+    # Return the diameter
+    return 2 * capillary_radius
+
+
 def plot_hexagonal_fibers(fiber_dia, num_rings=3, spacing_factor=1.0):
     """
     Plots the fibers in a hexagonal pattern.
@@ -69,6 +95,7 @@ def plot_hexagonal_fibers(fiber_dia, num_rings=3, spacing_factor=1.0):
         spacing_factor (float): Factor to adjust spacing between fibers (1.0 = touching).
     """
     centers_x, centers_y = hexagonal_fiber_layout(fiber_dia, num_rings, spacing_factor)
+    cap_dia = calculate_capillary_diameter(fiber_dia, num_rings, spacing_factor)
 
     # Create figure
     fig, ax = plt.subplots(figsize=(10, 10))
@@ -78,6 +105,9 @@ def plot_hexagonal_fibers(fiber_dia, num_rings=3, spacing_factor=1.0):
     for x, y in zip(centers_x, centers_y):
         circle = plt.Circle((x, y), fiber_dia / 2, fill=False, edgecolor="blue")
         ax.add_patch(circle)
+
+    circle = plt.Circle((0, 0), cap_dia / 2, fill=False, edgecolor="green")
+    ax.add_patch(circle)
 
     # Set limits with some padding
     max_extent = max(
@@ -113,12 +143,5 @@ def plot_hexagonal_fibers(fiber_dia, num_rings=3, spacing_factor=1.0):
 if __name__ == "__main__":
     # Example: 125 µm diameter fibers with 3 rings
     fiber_diameter = 125
-    fig, ax = plot_hexagonal_fibers(fiber_diameter, num_rings=1, spacing_factor=1.05)
+    fig, ax = plot_hexagonal_fibers(fiber_diameter, num_rings=2, spacing_factor=1.05)
     plt.show()
-
-    # Calculate theoretical packing efficiency
-    centers_x, centers_y = hexagonal_fiber_layout(
-        fiber_diameter, num_rings=3, spacing_factor=1.05
-    )
-    num_fibers = len(centers_x)
-    print(f"Generated {num_fibers} fibers in hexagonal arrangement")

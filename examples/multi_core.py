@@ -1,7 +1,10 @@
 import numpy as np
 
 from fiber import OpticalFiber
-from rsoft_cad.utils.hex_lantern_layout import hexagonal_fiber_layout
+from rsoft_cad.utils.hex_lantern_layout import (
+    hexagonal_fiber_layout,
+    calculate_capillary_diameter,
+)
 
 
 class HexagonalMCF(OpticalFiber):
@@ -112,7 +115,11 @@ class HexagonalMCF(OpticalFiber):
 
         return centers_x, centers_y
 
-    def create_hexagonal_mcf(self, base_id="FIBER", apply_custom_props=True):
+    def create_hexagonal_mcf(
+        self,
+        base_id="FIBER",
+        apply_custom_props=True,
+    ):
         """
         Create a hexagonal multi-core fiber with the specified properties.
 
@@ -144,9 +151,6 @@ class HexagonalMCF(OpticalFiber):
             original_y = self.fiber_props["pos_y"]
 
             # Set position for this core
-            # self.fiber_props["pos_x"] = original_x + x
-            # self.fiber_props["pos_y"] = original_y + y
-
             self.set_pos(original_x + x, original_y + y)
 
             # Apply any custom properties for this core
@@ -180,6 +184,30 @@ class HexagonalMCF(OpticalFiber):
             for prop_name, prop_value in original_props.items():
                 self.fiber_props[prop_name] = prop_value
 
+        # Add capillary
+        self.fiber_props["cap_dia"] = calculate_capillary_diameter(
+            self.fiber_props["cladding_dia"],
+            self.mcf_props["num_rings"],
+            self.mcf_props["spacing_factor"],
+        )
+        self.add_capillary_segment()
+        cap_id = self.find_segment_by_comp_name(self.segments, "CAPILLARY")
+        pth_way = self.add_pathways(segment_ids=[cap_id])
+        lines = pth_way.strip().split("\n")
+        pathway_number = [
+            line.split()[1] for line in lines if line.strip().startswith("pathway ")
+        ][0]
+        self.add_pathways_monitor(pathway_id=pathway_number)
+
+        # Add launch field
+        launch = self.add_launch_field(
+            launch_pathway=pathway_number,
+            launch_width=self.fiber_props["core_dia"],
+            launch_height=self.fiber_props["core_dia"],
+            launch_position=centers_x[len(centers_x) // 2],
+            launch_position_y=centers_y[len(centers_x) // 2],
+        )
+
         return self
 
     def get_core_count(self):
@@ -190,29 +218,6 @@ class HexagonalMCF(OpticalFiber):
         int: Number of cores
         """
         return len(self.mcf_props["all_core_ids"])
-
-    def add_launch_fields_all_cores(self, launch_file="SMF28_LP01.m00"):
-        """
-        Add launch fields to all cores in the MCF.
-
-        Parameters:
-        launch_file (str): Launch field file to use
-
-        Returns:
-        HexagonalMCF: self for method chaining
-        """
-        for i, core_id in enumerate(self.mcf_props["all_core_ids"]):
-            # Find the pathway associated with this core
-            # Assuming pathways are created in the same order as cores
-            pathway_id = i + 1
-
-            # Add launch field
-            # Note: This is a placeholder; the actual implementation would depend on
-            # the specifics of the add_launch_field method in the parent class
-            if hasattr(self, "add_launch_field"):
-                self.add_launch_field(pathway_id=pathway_id, launch_file=launch_file)
-
-        return self
 
     def create_standard_hexagonal_mcf(
         self,
@@ -249,6 +254,15 @@ class HexagonalMCF(OpticalFiber):
         # Create the MCF
         self.create_hexagonal_mcf(base_id=base_id)
 
+        # Update boundary
+        self.update_global_params(
+            boundary_max=self.fiber_props["cap_dia"] / 2,
+            boundary_max_y=self.fiber_props["cap_dia"] / 2,
+            boundary_min=-self.fiber_props["cap_dia"] / 2,
+            boundary_min_y=-self.fiber_props["cap_dia"] / 2,
+            grid_size=1,
+            slice_display_mode="DISPLAY_CONTOURMAPXZ",
+        )
         return self
 
 
@@ -256,7 +270,7 @@ class HexagonalMCF(OpticalFiber):
 if __name__ == "__main__":
     # Create a standard hexagonal MCF with 2 rings
     mcf = HexagonalMCF()
-    mcf.create_standard_hexagonal_mcf(num_rings=1, taper_factor=15)
+    mcf.create_standard_hexagonal_mcf(num_rings=4, taper_factor=15)
 
     # Print the number of cores
     print(f"Created MCF with {mcf.get_core_count()} cores")

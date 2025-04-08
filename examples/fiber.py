@@ -184,7 +184,6 @@ class OpticalFiber(RSoftCircuit):
         str: The generated segment text
         """
         # Calculate delta based on refractive indices
-        # Delta is the relative refractive index difference: (n1²-n2²)/(2*n1²)
         n1 = self.fiber_props["core_index"]
         n2 = self.fiber_props["bg_index"]
         delta = n1 - n2
@@ -229,7 +228,6 @@ class OpticalFiber(RSoftCircuit):
         str: The generated segment text
         """
         # Calculate delta based on refractive indices
-        # Delta is the relative refractive index difference: (n1²-n2²)/(2*n1²)
         n1 = self.fiber_props["cladding_index"]
         n_bg = self.fiber_props["bg_index"]
         delta = n1 - n_bg
@@ -262,6 +260,47 @@ class OpticalFiber(RSoftCircuit):
             )
 
         return self.add_segment(**cladding_props)
+
+    def add_capillary_segment(self, segment_id=None, cap_id="CAPILLARY"):
+        """
+        Add a capillary segment based on fiber properties.
+
+        Parameters:
+        segment_id (int, optional): ID for the segment. If None, auto-incremented.
+
+        Returns:
+        str: The generated segment text
+        """
+        # Calculate delta based on refractive indices
+        delta = 0
+
+        # Default segment properties
+        capillary_props = {
+            "comp_name": cap_id,
+            "begin.x": 0,
+            "begin.y": 0,
+            "begin.z": 0,
+            "begin.height": self.fiber_props["cap_dia"],
+            "begin.width": self.fiber_props["cap_dia"],
+            "begin.delta": delta,
+            "end.x": 0,
+            "end.y": 0,
+            "end.z": self.fiber_props["length"],
+            "end.height": self.fiber_props["cap_dia"]
+            / self.fiber_props["taper_factor"],
+            "end.width": self.fiber_props["cap_dia"] / self.fiber_props["taper_factor"],
+            "end.delta": delta,
+        }
+
+        if self.fiber_props["taper_factor"] > 1:
+            self.fiber_props.update(
+                width_taper="TAPER_LINEAR",
+                height_taper="TAPER_LINEAR",
+                position_y_taper="TAPER_LINEAR",
+                position_taper="TAPER_LINEAR",
+            )
+
+        return self.add_segment(**capillary_props)
 
     def create_standard_smf(self, fiber_id=None, pos_x=0, pos_y=0):
         """
