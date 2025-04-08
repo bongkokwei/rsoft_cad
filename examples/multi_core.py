@@ -1,6 +1,7 @@
 import numpy as np
+import argparse
 
-from fiber import OpticalFiber
+from .fiber import OpticalFiber
 from rsoft_cad.utils.hex_lantern_layout import (
     hexagonal_fiber_layout,
     calculate_capillary_diameter,
@@ -266,15 +267,51 @@ class HexagonalMCF(OpticalFiber):
         return self
 
 
-# Example usage
-if __name__ == "__main__":
-    # Create a standard hexagonal MCF with 2 rings
-    mcf = HexagonalMCF()
-    mcf.create_standard_hexagonal_mcf(num_rings=4, taper_factor=15)
+def main():
+    # Create the parser
+    parser = argparse.ArgumentParser(
+        description="Generate a hexagonal multi-core fiber (MCF) structure",
+        epilog="Example: %(prog)s --rings 4 --taper 15 --output mcf_design.txt",
+    )
 
-    # Print the number of cores
+    # Add arguments
+    parser.add_argument(
+        "-r",
+        "--rings",
+        type=int,
+        default=2,
+        help="Number of rings around the central core (default: 2)",
+    )
+
+    parser.add_argument(
+        "-t",
+        "--taper",
+        type=float,
+        default=1.0,
+        help="Taper factor that determines core spacing (default: 1.0)",
+    )
+
+    parser.add_argument(
+        "-o",
+        "--output",
+        help="Output file for core coordinates (default: output to stdout)",
+    )
+
+    # Parse the arguments
+    args = parser.parse_args()
+
+    # Create the MCF
+    mcf = HexagonalMCF()
+    mcf.create_standard_hexagonal_mcf(num_rings=args.rings, taper_factor=args.taper)
+
+    # Print basic info
     print(f"Created MCF with {mcf.get_core_count()} cores")
 
-    # Write to file
-    file_name = f"hex_{mcf.get_core_count()}_cores_mcf"
-    mcf.write(f"output/{file_name}/{file_name}.ind")
+    # Save to file if requested
+    if args.output:
+        mcf.save_to_file(args.output)
+        print(f"Core coordinates saved to {args.output}")
+
+
+if __name__ == "__main__":
+    main()

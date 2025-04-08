@@ -69,15 +69,9 @@ When modifying parameters with `modify_config.py`, use dot notation to specify t
    pip install -e .
    ```
 
-2. Run an example photonic lantern simulation:
+2. Run an example multi core simulation:
    ```bash
-   python -m examples.photonic_lantern
-   ```
-
-3. To customize your photonic lantern design:
-   ```bash
-   python -m rsoft_cad.utils.modify_config --param "pl_params.Num_Cores_Ring" "6" --output config/custom_config.json
-   python -m examples.photonic_lantern --config config/custom_config.json --output output/custom_lantern.ind
+   python -m examples.examples.multi_core --rings 4 --taper 15
    ```
 
 ## Design Principles
