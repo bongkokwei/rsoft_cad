@@ -291,12 +291,6 @@ def main():
         help="Taper factor that determines core spacing (default: 1.0)",
     )
 
-    parser.add_argument(
-        "-o",
-        "--output",
-        help="Output file for core coordinates (default: output to stdout)",
-    )
-
     # Parse the arguments
     args = parser.parse_args()
 
