@@ -8,7 +8,7 @@ This repository contains tools for designing, simulating, and analysing photonic
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/rsoft_cad.git
+git clone https://github.com/bongkokwei/rsoft_cad.git
 cd rsoft_cad
 
 # Install in development mode
@@ -64,14 +64,9 @@ When modifying parameters with `modify_config.py`, use dot notation to specify t
 
 ## Getting Started
 
-1. Install the package:
+1. Run an example multi core simulation:
    ```bash
-   pip install -e .
-   ```
-
-2. Run an example multi core simulation:
-   ```bash
-   python -m examples.examples.multi_core --rings 4 --taper 15
+   python -m examples.multi_core --rings 4 --taper 15
    ```
 
 ## Design Principles
