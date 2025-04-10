@@ -173,7 +173,7 @@ class OpticalFiber(RSoftCircuit):
 
         return True
 
-    def add_core_segment(self, segment_id=None, core_id="CORE"):
+    def add_core_segment(self, segment_id=None, core_id="CORE", **params):
         """
         Add a fiber segment with core and cladding based on fiber properties.
 
@@ -185,8 +185,8 @@ class OpticalFiber(RSoftCircuit):
         """
         # Calculate delta based on refractive indices
         n1 = self.fiber_props["core_index"]
-        n2 = self.fiber_props["bg_index"]
-        delta = n1 - n2
+        n_bg = self.fiber_props["bg_index"]
+        delta = n1 - n_bg
 
         # Default segment properties
         fiber_props = {
@@ -207,6 +207,8 @@ class OpticalFiber(RSoftCircuit):
             "end.delta": delta,
         }
 
+        fiber_props.update(params)
+
         if self.fiber_props["taper_factor"] > 1:
             self.fiber_props.update(
                 width_taper="TAPER_LINEAR",
@@ -217,7 +219,7 @@ class OpticalFiber(RSoftCircuit):
 
         return self.add_segment(**fiber_props)
 
-    def add_cladding_segment(self, segment_id=None, cladding_id="CLAD"):
+    def add_cladding_segment(self, segment_id=None, cladding_id="CLAD", **params):
         """
         Add a fiber segment with core and cladding based on fiber properties.
 
@@ -251,6 +253,8 @@ class OpticalFiber(RSoftCircuit):
             "end.delta": delta,
         }
 
+        cladding_props.update(params)
+
         if self.fiber_props["taper_factor"] > 1:
             self.fiber_props.update(
                 width_taper="TAPER_LINEAR",
@@ -261,7 +265,7 @@ class OpticalFiber(RSoftCircuit):
 
         return self.add_segment(**cladding_props)
 
-    def add_capillary_segment(self, segment_id=None, cap_id="CAPILLARY"):
+    def add_capillary_segment(self, segment_id=None, cap_id="CAPILLARY", **params):
         """
         Add a capillary segment based on fiber properties.
 
@@ -291,6 +295,8 @@ class OpticalFiber(RSoftCircuit):
             "end.width": self.fiber_props["cap_dia"] / self.fiber_props["taper_factor"],
             "end.delta": delta,
         }
+
+        capillary_props.update(params)
 
         if self.fiber_props["taper_factor"] > 1:
             self.fiber_props.update(
@@ -333,10 +339,7 @@ class OpticalFiber(RSoftCircuit):
         self.add_cladding_segment(cladding_id=cladding_id)
 
         # Add pathway with this segment
-        seg_id = self.find_segment_by_comp_name(
-            self.segments,
-            core_id,
-        )
+        seg_id = self.find_segment_by_comp_name(self.segments, core_id)
 
         self.add_pathways(segment_ids=seg_id)
 
