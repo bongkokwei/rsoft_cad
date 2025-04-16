@@ -4,6 +4,7 @@ from rsoft_cad.utils.plot_utils import visualise_lantern
 from rsoft_cad.rsoft_circuit import RSoftCircuit
 
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 lp_mode_cutoffs_freq = {
@@ -50,11 +51,17 @@ class ModeSelectiveLantern(RSoftCircuit):
 
         # Lantern LP mode with highest cutoff
         self.cladding_dia = 125.0  # TODO: check if most fibers have 125 micron cladding
+        self.cap_dia = 125.0
+        self.num_cores = 0
+        self.design_filepath = "default/"
+        self.design_filename = "mspl.ind"
+
         self.default_fiber_props = {
-            "core_dia": 8.2,  # Core diameter in microns
+            "core_dia": 10.4,  # Core diameter in microns
             "cladding_dia": 125.0,  # Cladding diameter in microns
             "core_index": 1.45213,  # Core refractive index
-            "cladding_index": 1.44692,  # Cladding refractive index
+            # "cladding_index": 1.44692,  # Cladding refractive index
+            "cladding_index": 1.44346,
             "bg_index": 1.4345,
             "pos_x": 0,  # X position in microns
             "pos_y": 0,  # Y position in microns
@@ -67,6 +74,8 @@ class ModeSelectiveLantern(RSoftCircuit):
         self.default_fiber_props.update(params)
         # Initialize empty bundle to store fiber configurations for each mode
         self.bundle = {}
+
+        # Default simulation parameters
         self.update_global_params(
             cad_aspectratio_x=50,
             cad_aspectratio_y=50,
@@ -75,6 +84,7 @@ class ModeSelectiveLantern(RSoftCircuit):
             grid_size_y=1,
             fem_nev=1,  # Number of modes to find
             sim_tool="ST_BEAMPROP",
+            slice_display_mode="DISPLAY_CONTOURMAPXZ",
         )
 
     def set_core_dia(self, core_dict):
@@ -149,9 +159,21 @@ class ModeSelectiveLantern(RSoftCircuit):
         for mode in self.bundle:
             self.bundle[mode]["taper_factor"] = taper_factor
 
+    def set_taper_length(self, taper_length=10000):
+        """
+        Set the same taper factor for all fibers in the bundle.
+
+        Args:
+            taper_factor: The taper factor to set for all fibers (default: 1).
+                          A taper factor of 1 means no tapering.
+        """
+        self.default_fiber_props["taper_length"] = taper_length
+        for mode in self.bundle:
+            self.bundle[mode]["taper_length"] = taper_length
+
     def multilayer_lantern_layout(self, cladding_dia, layers_config):
         """
-        Computes the positions of circles arranged in multiple concentric layers.
+        Computes the positions of circles arranged in multiple concentric layers with truly optimal packing.
         Parameters:
             cladding_dia (float): Diameter of the smaller circles (cladding diameter).
             layers_config (list): List of tuples (n, radius_factor) where:
@@ -166,26 +188,124 @@ class ModeSelectiveLantern(RSoftCircuit):
         layer_centres = []
         layer_radii = []
 
-        for layer_idx, (n, radius_factor) in enumerate(layers_config):
-            # Calculate the basic layout for this layer
-            R, centres_x, centres_y = lantern_layout(cladding_dia, n)
+        # Radius of individual circles
+        circle_radius = cladding_dia / 2
 
-            # Apply the radius factor to adjust the distance from center
-            adjusted_R = R * radius_factor
-            adjusted_centres_x = centres_x * radius_factor
-            adjusted_centres_y = centres_y * radius_factor
+        # First, determine the core structure
+        # Using a centralized approach to ensure the densest possible layout
 
-            # Create a list of (x,y) coordinate tuples for this layer
-            layer_coords = [
+        # Collect all circles from all layers
+        total_circles = sum(n for n, _ in layers_config)
+
+        # Special case handling for very few circles
+        if total_circles <= 1:
+            return [[(0, 0)]], np.array([0])
+
+        # For optimal packing, we'll use a different approach:
+        # If we have a central circle (like LP01) and a ring around it (like LP11/LP21 modes)
+
+        # Map out the layers with their counts (ignore radius_factor initially for optimal density)
+        rings = []
+        for n, _ in layers_config:
+            rings.append(n)
+
+        # Handle common case for LP mode layouts: central circle + ring of circles
+        if len(rings) == 2 and rings[0] == 1 and rings[1] > 0:
+            # Central circle (LP01)
+            central_coordinates = [(0, 0)]
+            layer_centres.append(central_coordinates)
+            layer_radii.append(0)  # Center has radius 0
+
+            # Ring around it (LP11/LP21 modes)
+            n_outer = rings[1]
+            # For densest packing, outer circles should touch the central circle
+            # The distance from center to outer circle centers should be 2*circle_radius
+            outer_radius = 2 * circle_radius
+
+            # Calculate positions based on lantern_layout but override the radius
+            _, centres_x, centres_y = lantern_layout(cladding_dia, n_outer)
+
+            # Normalize and adjust to desired radius
+            norm_factor = (
+                np.sqrt(centres_x[0] ** 2 + centres_y[0] ** 2) if n_outer > 1 else 1
+            )
+            if norm_factor > 0:
+                adjusted_centres_x = centres_x / norm_factor * outer_radius
+                adjusted_centres_y = centres_y / norm_factor * outer_radius
+            else:
+                adjusted_centres_x = centres_x
+                adjusted_centres_y = centres_y
+
+            outer_coordinates = [
                 (adjusted_centres_x[i], adjusted_centres_y[i])
                 for i in range(len(adjusted_centres_x))
             ]
+            layer_centres.append(outer_coordinates)
+            layer_radii.append(outer_radius)
 
-            # Add to our layer lists
-            layer_centres.append(layer_coords)
-            layer_radii.append(adjusted_R)
+            return layer_centres, np.array(layer_radii)
 
-        return layer_centres, layer_radii
+        # For more complex configurations: multiple layers or non-standard counts
+        # Fallback to a more geometric approach, focusing on the constraint that
+        # neighboring circles must touch
+
+        # Process layers from inner to outer
+        previous_layer_radius = 0  # Radius to the centers of circles in previous layer
+
+        for layer_idx, (n, radius_factor) in enumerate(layers_config):
+            # Skip empty layers
+            if n == 0:
+                continue
+
+            # First layer handling (innermost)
+            if layer_idx == 0:
+                if n == 1:
+                    # Single central circle
+                    layer_centres.append([(0, 0)])
+                    layer_radii.append(0)  # Center point
+                    previous_layer_radius = 0
+                else:
+                    # Calculate the minimum radius where n circles can fit without overlap
+                    R, centres_x, centres_y = lantern_layout(cladding_dia, n)
+                    # Apply minimal radius for densest packing
+                    layer_centres.append(
+                        [(centres_x[i], centres_y[i]) for i in range(n)]
+                    )
+                    layer_radii.append(R)
+                    previous_layer_radius = R
+            else:
+                # For subsequent layers - ensure optimal packing with previous layer
+                # The optimal placement has the outer circles touching the inner circles
+
+                # Calculate base layout for this layer
+                R, centres_x, centres_y = lantern_layout(cladding_dia, n)
+
+                # Previous layer had circles at distance previous_layer_radius
+                # For densest packing, new layer circles should be at distance:
+                # previous_layer_radius + 2*circle_radius
+                optimal_radius = previous_layer_radius + 2 * circle_radius
+
+                # Normalize and adjust to get densest packing
+                if R > 0:
+                    scaling_factor = optimal_radius / R
+                    adjusted_centres_x = centres_x * scaling_factor
+                    adjusted_centres_y = centres_y * scaling_factor
+                else:
+                    adjusted_centres_x = centres_x
+                    adjusted_centres_y = centres_y
+
+                layer_coords = [
+                    (adjusted_centres_x[i], adjusted_centres_y[i])
+                    for i in range(len(adjusted_centres_x))
+                ]
+
+                layer_centres.append(layer_coords)
+                layer_radii.append(optimal_radius)
+
+                # Update for next layer
+                previous_layer_radius = optimal_radius
+
+        return layer_centres, np.array(layer_radii)
 
     def get_modes_below_cutoff(self, input_mode, lp_mode_cutoffs_freq):
         """
@@ -268,7 +388,7 @@ class ModeSelectiveLantern(RSoftCircuit):
         """
         if scale_factors is None:
             # Default scale factors increasing by 0.2 for each layer
-            scale_factors = {r: 1.2 for r in radial_groups.keys()}
+            scale_factors = {r: 1 for r in radial_groups.keys()}
 
         layers_config = []
 
@@ -290,6 +410,7 @@ class ModeSelectiveLantern(RSoftCircuit):
             # Add the layer configuration
             scale_factor = scale_factors.get(radial_num, 1.0)
             layers_config.append((num_circles, scale_factor))
+            self.num_cores += num_circles
 
         return layers_config
 
@@ -330,7 +451,7 @@ class ModeSelectiveLantern(RSoftCircuit):
             layer_config,
         )
 
-        self.cap_dia = layer_radii[-1] + 2 * self.cladding_dia
+        self.cap_dia = 2 * layer_radii[-1] + self.cladding_dia
 
         # Create the core map dictionary
         core_map = {}
@@ -495,44 +616,130 @@ class ModeSelectiveLantern(RSoftCircuit):
         # Raise an exception if component is not found
         raise ValueError(f"Component '{comp_name}' not found in any segment")
 
+    def create_lantern(
+        self,
+        highest_mode="LP02",
+        launch_mode="LP01",
+        taper_factor=5,
+        taper_length=80000,
+        core_diameters=None,
+        savefile=True,
+        femnev=1,
+        femsim=True,
+        opt_name=0,
+    ):
+        """
+        Create and configure an example mode selective lantern.
+
+        This method demonstrates the complete process of creating a mode selective lantern:
+        1. Creating a core map based on the highest supported mode
+        2. Updating the bundle with spatial coordinates
+        3. Fine-tuning core diameters for each supported mode
+        4. Setting the taper factor
+        5. Adding fiber segments (core and cladding)
+        6. Adding a capillary segment
+        7. Configuring the launch field
+
+        Args:
+            highest_mode (str): The highest LP mode to support (default: "LP12")
+            launch_mode (str): The mode to launch from (default: "LP01")
+            core_diameters (dict, optional): Dictionary mapping mode names to core diameters.
+                                            If None, default values will be used.
+                                            Example: {"LP01": 10.7, "LP11a": 9.6}
+
+        Returns:
+            ModeSelectiveLantern: The configured lantern instance (self)
+        """
+        # Create a core map for the specified highest mode
+        core_map = self.create_core_map(highest_mode)
+
+        # Update the bundle with spatial coordinates from the core map
+        self.update_bundle_with_core_map(core_map)
+
+        # Use provided core diameters or set defaults
+        if core_diameters is None:
+            # Default core diameters to use if none provided
+            core_diameters = {
+                "LP01": 10.7,  # Fundamental mode gets largest core
+                "LP11a": 9.6,  # First higher-order mode pair
+                "LP11b": 9.6,
+                "LP21a": 8.5,  # Second higher-order mode pair
+                "LP21b": 8.5,
+                "LP02": 7.35,  # Second radial mode gets smallest core
+            }
+
+        # Filter the core diameters to only include modes that exist in the bundle
+        core_dia_dict = {
+            mode: diameter
+            for mode, diameter in core_diameters.items()
+            if mode in self.bundle
+        }
+
+        self.set_core_dia(core_dia_dict)
+        self.set_taper_factor(taper_factor)
+        self.set_taper_length(taper_length)
+
+        # Add fiber segments
+        self.add_fiber_segment(core_or_clad="core")
+        self.add_fiber_segment(core_or_clad="cladding")
+        self.add_capillary_segment()
+
+        # Configure the launch field
+        self.design_filepath = f"output/mspl_{self.num_cores}_cores/"
+        self.design_filename = f"mspl_{self.num_cores}_cores_{opt_name}.ind"
+        self.launch_from_fiber(launch_mode)
+
+        domain_start = self.default_fiber_props["taper_length"] if femsim else 0
+        taper = self.default_fiber_props["taper_factor"] if femsim else 1
+        multimode_size = (self.cap_dia / taper) * 1.5
+
+        self.update_global_params(
+            boundary_max=multimode_size / 2,
+            boundary_max_y=multimode_size / 2,
+            boundary_min=-multimode_size / 2,
+            boundary_min_y=-multimode_size / 2,
+            domain_min=domain_start,
+            grid_size=1,
+            grid_size_y=1,
+            fem_nev=femnev,
+            slice_display_mode="DISPLAY_CONTOURMAPXY",
+            # sim_tool="ST_FEMSIM",
+        )
+
+        if savefile:
+            self.write(self.design_filepath + self.design_filename)
+
+        return core_map
+
+    def __str__(self):
+        """
+        Custom string representation of the ModeSelectiveLantern object.
+
+        Returns:
+            str: A formatted string showing all fiber properties in the bundle
+        """
+        if not self.bundle:
+            return "Empty ModeSelectiveLantern (no fibers configured)"
+
+        result = []
+        for label, fiber_prop_dict in self.bundle.items():
+            result.append(f"{label}:")
+            for key, prop in fiber_prop_dict.items():
+                result.append(f"\t{key}: {prop}")
+
+        return "\n".join(result)
+
 
 if __name__ == "__main__":
     # Create a mode selective lantern instance
     mspl = ModeSelectiveLantern()
-
-    # Create a core map for LP02 mode (this will support 6 modes: LP01, LP11a/b, LP21a/b, LP02)
-    core_map = mspl.create_core_map("LP02")
-
-    # Update the bundle with spatial coordinates from the core map
-    mspl.update_bundle_with_core_map(core_map)
-
-    # Fine-tune the core diameters for each supported mode to optimize mode selectivity
-    mspl.set_core_dia(
-        {
-            "LP01": 10.7,  # Fundamental mode gets largest core
-            "LP11a": 9.6,  # First higher-order mode pair
-            "LP11b": 9.6,
-            "LP21a": 8.5,  # Second higher-order mode pair
-            "LP21b": 8.5,
-            "LP02": 7.35,  # Second radial mode gets smallest core
-        }
+    core_map = mspl.create_lantern(
+        highest_mode="LP21",
+        launch_mode="LP01",
+        savefile=False,
     )
-    mspl.set_taper_factor(13)
+    # print(mspl)
 
-    # Print the properties of each fiber in the bundle
-    for label, fiber_prop_dict in mspl.bundle.items():
-        print(f"{label}:")
-        for key, prop in fiber_prop_dict.items():
-            print(f"\t{key}: {prop}")
-
-    launch_mode = "LP02"
-    mspl.add_fiber_segment(core_or_clad="core")
-    mspl.add_fiber_segment(core_or_clad="cladding")
-    mspl.add_capillary_segment()
-    mspl.launch_from_fiber(launch_mode)
-
-    mspl.write(f"output/mspl/mspl_{launch_mode}.ind")
-
-    # # Visualize the lantern design
-    # fig, ax = visualise_lantern(core_map)
-    # plt.show()
+    # Visualize the lantern design
+    fig, ax = visualise_lantern(core_map)
+    plt.show()
