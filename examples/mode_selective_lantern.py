@@ -5,7 +5,7 @@ from rsoft_cad.rsoft_circuit import RSoftCircuit
 
 import matplotlib.pyplot as plt
 import numpy as np
-
+import os
 
 lp_mode_cutoffs_freq = {
     "LP01": 0.000,  # No cutoff (always guided)
@@ -53,15 +53,15 @@ class ModeSelectiveLantern(RSoftCircuit):
         self.cladding_dia = 125.0  # TODO: check if most fibers have 125 micron cladding
         self.cap_dia = 125.0
         self.num_cores = 0
-        self.design_filepath = "default/"
+        self.design_filepath = "default"
         self.design_filename = "mspl.ind"
 
         self.default_fiber_props = {
             "core_dia": 10.4,  # Core diameter in microns
             "cladding_dia": 125.0,  # Cladding diameter in microns
             "core_index": 1.45213,  # Core refractive index
-            # "cladding_index": 1.44692,  # Cladding refractive index
-            "cladding_index": 1.44346,
+            "cladding_index": 1.44692,  # Cladding refractive index
+            # "bg_index": 1.44346,
             "bg_index": 1.4345,
             "pos_x": 0,  # X position in microns
             "pos_y": 0,  # Y position in microns
@@ -597,6 +597,10 @@ class ModeSelectiveLantern(RSoftCircuit):
 
     def launch_from_fiber(self, lp_node):
         self.add_launch_field(
+            launch_type="LAUNCH_GAUSSIAN",
+            launch_tilt=0,
+            # launch_file="femsim_LP01_ex.m00",
+            # launch_file_explicit=1,
             launch_pathway=self.pathway_counter,
             launch_width=self.bundle[lp_node]["core_dia"],
             launch_height=self.bundle[lp_node]["core_dia"],
@@ -627,6 +631,7 @@ class ModeSelectiveLantern(RSoftCircuit):
         femnev=1,
         femsim=True,
         opt_name=0,
+        sim_params=None,
     ):
         """
         Create and configure an example mode selective lantern.
@@ -639,16 +644,30 @@ class ModeSelectiveLantern(RSoftCircuit):
         5. Adding fiber segments (core and cladding)
         6. Adding a capillary segment
         7. Configuring the launch field
+        8. Setting simulation parameters
 
         Args:
-            highest_mode (str): The highest LP mode to support (default: "LP12")
+            highest_mode (str): The highest LP mode to support (default: "LP02")
             launch_mode (str): The mode to launch from (default: "LP01")
             core_diameters (dict, optional): Dictionary mapping mode names to core diameters.
-                                            If None, default values will be used.
-                                            Example: {"LP01": 10.7, "LP11a": 9.6}
+                                          If None, default values will be used.
+                                          Example: {"LP01": 10.7, "LP11a": 9.6}
+            taper_factor (float): The factor by which the fibers are tapered (default: 5)
+            taper_length (float): The length of the taper in microns (default: 80000)
+            savefile (bool): Whether to save the design file (default: True)
+            femnev (int): Number of eigenmodes to find in FEM simulation (default: 1)
+            femsim (bool): Whether to use FEM simulation (default: True)
+            opt_name (int or str): Optional name identifier for the output file (default: 0)
+            sim_params (dict, optional): Dictionary of simulation parameters to override defaults.
+                                       Any parameter that can be passed to update_global_params.
+                                       Example: {
+                                         "grid_size": 0.5,
+                                         "boundary_max": 100,
+                                         "sim_tool": "ST_FEMSIM"
+                                       }
 
         Returns:
-            ModeSelectiveLantern: The configured lantern instance (self)
+            dict: The core map showing the spatial layout of supported modes
         """
         # Create a core map for the specified highest mode
         core_map = self.create_core_map(highest_mode)
@@ -685,29 +704,43 @@ class ModeSelectiveLantern(RSoftCircuit):
         self.add_capillary_segment()
 
         # Configure the launch field
-        self.design_filepath = f"output/mspl_{self.num_cores}_cores/"
+        self.design_filepath = f"output/mspl_{self.num_cores}_cores"
         self.design_filename = f"mspl_{self.num_cores}_cores_{opt_name}.ind"
         self.launch_from_fiber(launch_mode)
 
+        # Calculate default simulation parameters
         domain_start = self.default_fiber_props["taper_length"] if femsim else 0
         taper = self.default_fiber_props["taper_factor"] if femsim else 1
         multimode_size = (self.cap_dia / taper) * 1.5
 
-        self.update_global_params(
-            boundary_max=multimode_size / 2,
-            boundary_max_y=multimode_size / 2,
-            boundary_min=-multimode_size / 2,
-            boundary_min_y=-multimode_size / 2,
-            domain_min=domain_start,
-            grid_size=1,
-            grid_size_y=1,
-            fem_nev=femnev,
-            slice_display_mode="DISPLAY_CONTOURMAPXY",
-            # sim_tool="ST_FEMSIM",
-        )
+        # Prepare default simulation parameters
+        default_sim_params = {
+            "boundary_max": multimode_size / 2,
+            "boundary_max_y": multimode_size / 2,
+            "boundary_min": -multimode_size / 2,
+            "boundary_min_y": -multimode_size / 2,
+            "domain_min": domain_start,
+            "grid_size": 1,
+            "grid_size_y": 1,
+            "fem_nev": femnev,
+            "slice_display_mode": "DISPLAY_CONTOURMAPXY",
+            # By default, use the simulation tool specified in the class initialization
+        }
+
+        # Override defaults with user-provided simulation parameters
+        if sim_params:
+            default_sim_params.update(sim_params)
+
+        # Update global parameters with combined simulation settings
+        self.update_global_params(**default_sim_params)
 
         if savefile:
-            self.write(self.design_filepath + self.design_filename)
+            self.write(
+                os.path.join(
+                    self.design_filepath,
+                    self.design_filename,
+                )
+            )
 
         return core_map
 
