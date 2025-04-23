@@ -708,27 +708,18 @@ class ModeSelectiveLantern(RSoftCircuit):
         self.add_capillary_segment()
 
         # Configure the launch field
-        self.design_filepath = f"output\mspl_{self.num_cores}_cores"
-        self.design_filename = f"mspl_{self.num_cores}_cores_{opt_name}.ind"
-        self.launch_from_fiber(launch_mode)
-
-        # Calculate default simulation parameters
-        domain_start = self.default_fiber_props["taper_length"] if femsim else 0
-        taper = self.default_fiber_props["taper_factor"] if femsim else 1
-        multimode_size = (self.cap_dia / taper) * 1.5
+        if not isinstance(launch_mode, list):
+            self.launch_from_fiber(launch_mode)
+        else:
+            for mode in launch_mode:
+                self.launch_from_fiber(lp_node=mode)
 
         # Prepare default simulation parameters
         default_sim_params = {
-            "boundary_max": multimode_size / 2,
-            "boundary_max_y": multimode_size / 2,
-            "boundary_min": -multimode_size / 2,
-            "boundary_min_y": -multimode_size / 2,
-            "domain_min": domain_start,
             "grid_size": 1,
             "grid_size_y": 1,
             "fem_nev": femnev,
             "slice_display_mode": "DISPLAY_CONTOURMAPXY",
-            # By default, use the simulation tool specified in the class initialization
         }
 
         # Override defaults with user-provided simulation parameters
@@ -737,6 +728,10 @@ class ModeSelectiveLantern(RSoftCircuit):
 
         # Update global parameters with combined simulation settings
         self.update_global_params(**default_sim_params)
+
+        # Configure the design file name and directory
+        self.design_filepath = os.path.join("output", f"mspl_{self.num_cores}_cores")
+        self.design_filename = f"mspl_{self.num_cores}_cores_{opt_name}.ind"
 
         if savefile:
             self.write(
