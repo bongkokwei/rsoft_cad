@@ -157,7 +157,8 @@ class RSoftCircuit:
 
         # Store the launch field
         self.launch_fields.append(launch_text)
-        self.update_global_params(**launch_props)
+        if launch_id == 1:  # only update global for the first field
+            self.update_global_params(**launch_props)
 
         return launch_text
 
