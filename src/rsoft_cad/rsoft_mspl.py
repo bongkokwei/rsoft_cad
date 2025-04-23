@@ -77,6 +77,7 @@ class ModeSelectiveLantern(RSoftCircuit):
 
         # Default simulation parameters
         self.update_global_params(
+            structure="STRUCT_FIBER",
             cad_aspectratio_x=50,
             cad_aspectratio_y=50,
             background_index=self.default_fiber_props["bg_index"],
@@ -547,7 +548,10 @@ class ModeSelectiveLantern(RSoftCircuit):
             if core_or_clad == "core":
                 # Add pathway with this segment
                 self.add_pathways(segment_ids=self.segment_counter)
-                self.add_pathways_monitor(pathway_id=self.pathway_counter)
+                self.add_pathways_monitor(
+                    pathway_id=self.pathway_counter,
+                    **{"monitor_type": "MONITOR_FIELD_NEFF"},
+                )
         return True
 
     def add_capillary_segment(self):
@@ -704,7 +708,7 @@ class ModeSelectiveLantern(RSoftCircuit):
         self.add_capillary_segment()
 
         # Configure the launch field
-        self.design_filepath = f"output/mspl_{self.num_cores}_cores"
+        self.design_filepath = f"output\mspl_{self.num_cores}_cores"
         self.design_filename = f"mspl_{self.num_cores}_cores_{opt_name}.ind"
         self.launch_from_fiber(launch_mode)
 
@@ -767,11 +771,14 @@ if __name__ == "__main__":
     # Create a mode selective lantern instance
     mspl = ModeSelectiveLantern()
     core_map = mspl.create_lantern(
-        highest_mode="LP21",
+        highest_mode="LP11",
         launch_mode="LP01",
-        savefile=False,
+        savefile=True,
+        opt_name="prototype",
+        femsim=False,
     )
-    # print(mspl)
+
+    print(mspl)
 
     # Visualize the lantern design
     fig, ax = visualise_lantern(core_map)
