@@ -37,8 +37,6 @@ def run_simulation(
 
     # Change to the target directory
     os.chdir(target_dir)
-    print(f"Changed directory to: {os.getcwd()}")
-    print(os.path.join("..", design_filename))
     print(f"Running simulation ...\n")
 
     result = subprocess.run(
@@ -48,7 +46,6 @@ def run_simulation(
     )
     # Change back to the original directory
     os.chdir(original_dir)
-    print(f"Changed directory back to: {os.getcwd()}")
     return result
 
 
