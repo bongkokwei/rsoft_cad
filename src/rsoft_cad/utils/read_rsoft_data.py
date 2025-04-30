@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import os
 import glob
+import numpy as np
 
 
 def find_fld_files(folder_path, include_subfolders=False):
@@ -195,10 +196,6 @@ def read_mon_file(file_path):
     data_df = pd.DataFrame(data_array, columns=column_names)
 
     return header_info, data_df
-
-
-import numpy as np
-import os
 
 
 def read_nef_file(file_path):
