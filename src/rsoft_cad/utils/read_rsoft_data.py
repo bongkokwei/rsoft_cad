@@ -4,6 +4,7 @@ import pandas as pd
 import os
 import glob
 import numpy as np
+import shutil
 
 
 def find_fld_files(folder_path, include_subfolders=False):
@@ -270,3 +271,31 @@ def read_nef_file(file_path):
         "n_eff_imag": n_eff_imag,
         "n_eff_complex": n_eff_complex,
     }
+
+
+def copy_files_to_destination(file_list, destination_folder):
+    """
+    Copy a list of files to a destination folder.
+
+    Parameters:
+    file_list (list): List of file paths to copy
+    destination_folder (str): Path to the folder where files will be copied
+
+    Returns:
+    list: List of paths of copied files
+    """
+    # Create destination folder if it doesn't exist
+    os.makedirs(destination_folder, exist_ok=True)
+
+    copied_files = []
+
+    for file_path in file_list:
+        if os.path.isfile(file_path):
+            file_name = os.path.basename(file_path)
+            destination_path = os.path.join(destination_folder, file_name)
+
+            # Copy the file
+            shutil.copy2(file_path, destination_path)
+            copied_files.append(destination_path)
+
+    return copied_files
