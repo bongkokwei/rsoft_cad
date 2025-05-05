@@ -1,6 +1,5 @@
 from rsoft_cad.rsoft_circuit import RSoftCircuit
-from rsoft_cad.utils.cir_lantern_layout import lantern_layout
-from rsoft_cad.utils.plot_utils import visualise_lantern
+from rsoft_cad.utils import lantern_layout, visualise_lantern
 from rsoft_cad.rsoft_circuit import RSoftCircuit
 
 import matplotlib.pyplot as plt

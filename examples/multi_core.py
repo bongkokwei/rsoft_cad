@@ -2,7 +2,7 @@ import numpy as np
 import argparse
 
 from .fiber import OpticalFiber
-from rsoft_cad.utils.hex_lantern_layout import (
+from rsoft_cad.utils import (
     hexagonal_fiber_layout,
     calculate_capillary_diameter,
 )

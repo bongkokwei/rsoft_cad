@@ -1,5 +1,5 @@
 from rsoft_cad.rsoft_circuit import RSoftCircuit
-import rsoft_cad.utils.modify_config as mc
+import rsoft_cad.utils.config.modifier as mc
 
 
 class OpticalFiber(RSoftCircuit):

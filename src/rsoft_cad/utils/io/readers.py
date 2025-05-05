@@ -1,3 +1,8 @@
+# io/readers.py
+"""
+Readers module for RSoft CAD utilities
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -5,34 +10,6 @@ import os
 import glob
 import numpy as np
 import shutil
-
-
-def find_fld_files(folder_path, include_subfolders=False):
-    """
-    Find all files with .fld extension in the specified folder.
-
-    Parameters:
-    folder_path (str): Path to the folder to search in
-    include_subfolders (bool): If True, search in subfolders as well (recursive search)
-
-    Returns:
-    list: List of .fld filenames found
-    """
-    if not os.path.isdir(folder_path):
-        raise ValueError(f"The path '{folder_path}' is not a valid directory")
-
-    if include_subfolders:
-        # Recursive search using os.walk
-        fld_files = []
-        for root, _, files in os.walk(folder_path):
-            for file in files:
-                if file.lower().endswith(".fld"):
-                    fld_files.append(os.path.join(root, file))
-    else:
-        # Non-recursive search using glob
-        fld_files = glob.glob(os.path.join(folder_path, "*.fld"))
-
-    return fld_files
 
 
 def read_field_data(filename):
@@ -83,65 +60,6 @@ def read_field_data(filename):
         "ny": ny,
     }
 
-
-def find_mon_files(folder_path, include_subfolders=False):
-    """
-    Find all files with .mon extension in the specified folder.
-    Parameters:
-    folder_path (str): Path to the folder to search in
-    include_subfolders (bool): If True, search in subfolders as well (recursive search)
-    Returns:
-    list: List of .mon filenames found
-    """
-    if not os.path.isdir(folder_path):
-        raise ValueError(f"The path '{folder_path}' is not a valid directory")
-
-    if include_subfolders:
-        # Recursive search using os.walk
-        mon_files = []
-        for root, _, files in os.walk(folder_path):
-            for file in files:
-                if file.lower().endswith(".mon"):
-                    mon_files.append(os.path.join(root, file))
-    else:
-        # Non-recursive search using glob
-        mon_files = glob.glob(os.path.join(folder_path, "*.mon"))
-
-    return mon_files
-
-
-def find_files_by_extension(folder_path, extension, include_subfolders=False):
-    """
-    Find all files with the specified extension in the given folder.
-
-    Parameters:
-    folder_path (str): Path to the folder to search in
-    extension (str): File extension to search for (e.g., ".nef", ".mon")
-                     Can be provided with or without the leading dot
-    include_subfolders (bool): If True, search in subfolders as well (recursive search)
-
-    Returns:
-    list: List of filenames with the specified extension
-    """
-    # Ensure extension starts with a dot
-    if not extension.startswith("."):
-        extension = "." + extension
-
-    if not os.path.isdir(folder_path):
-        raise ValueError(f"The path '{folder_path}' is not a valid directory")
-
-    if include_subfolders:
-        # Recursive search using os.walk
-        matching_files = []
-        for root, _, files in os.walk(folder_path):
-            for file in files:
-                if file.lower().endswith(extension.lower()):
-                    matching_files.append(os.path.join(root, file))
-    else:
-        # Non-recursive search using glob
-        matching_files = glob.glob(os.path.join(folder_path, f"*{extension}"))
-
-    return matching_files
 
 
 def read_mon_file(file_path):
@@ -197,6 +115,7 @@ def read_mon_file(file_path):
     data_df = pd.DataFrame(data_array, columns=column_names)
 
     return header_info, data_df
+
 
 
 def read_nef_file(file_path):
@@ -273,29 +192,4 @@ def read_nef_file(file_path):
     }
 
 
-def copy_files_to_destination(file_list, destination_folder):
-    """
-    Copy a list of files to a destination folder.
 
-    Parameters:
-    file_list (list): List of file paths to copy
-    destination_folder (str): Path to the folder where files will be copied
-
-    Returns:
-    list: List of paths of copied files
-    """
-    # Create destination folder if it doesn't exist
-    os.makedirs(destination_folder, exist_ok=True)
-
-    copied_files = []
-
-    for file_path in file_list:
-        if os.path.isfile(file_path):
-            file_name = os.path.basename(file_path)
-            destination_path = os.path.join(destination_folder, file_name)
-
-            # Copy the file
-            shutil.copy2(file_path, destination_path)
-            copied_files.append(destination_path)
-
-    return copied_files

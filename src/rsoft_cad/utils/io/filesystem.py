@@ -1,4 +1,43 @@
+# io/filesystem.py
+"""
+Filesystem module for RSoft CAD utilities
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
 import os
+import glob
+import numpy as np
+import shutil
+
+
+def copy_files_to_destination(file_list, destination_folder):
+    """
+    Copy a list of files to a destination folder.
+
+    Parameters:
+    file_list (list): List of file paths to copy
+    destination_folder (str): Path to the folder where files will be copied
+
+    Returns:
+    list: List of paths of copied files
+    """
+    # Create destination folder if it doesn't exist
+    os.makedirs(destination_folder, exist_ok=True)
+
+    copied_files = []
+
+    for file_path in file_list:
+        if os.path.isfile(file_path):
+            file_name = os.path.basename(file_path)
+            destination_path = os.path.join(destination_folder, file_name)
+
+            # Copy the file
+            shutil.copy2(file_path, destination_path)
+            copied_files.append(destination_path)
+
+    return copied_files
 
 
 def get_next_run_folder(folder_path, prefix):
@@ -41,7 +80,4 @@ def get_next_run_folder(folder_path, prefix):
     return f"{prefix}{max_run + 1:03d}"
 
 
-# Example usage:
-if __name__ == "__main__":
-    next_run = get_next_run_folder("output", "taper_sweep_run_")
-    print(next_run)  # Outputs something like "run_007" if the highest was "run_006"
+

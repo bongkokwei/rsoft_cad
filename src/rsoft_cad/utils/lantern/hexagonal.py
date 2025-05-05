@@ -1,3 +1,8 @@
+# lantern/hexagonal.py
+"""
+Hexagonal module for RSoft CAD utilities
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -59,6 +64,7 @@ def hexagonal_fiber_layout(fiber_dia, num_rings=3, spacing_factor=1.0):
     return np.array(centers_x), np.array(centers_y)
 
 
+
 def calculate_capillary_diameter(fiber_dia, num_rings=3, spacing_factor=1.0):
     """
     Calculate the diameter of the capillary that fits all fibers in a hexagonal packing.
@@ -85,63 +91,4 @@ def calculate_capillary_diameter(fiber_dia, num_rings=3, spacing_factor=1.0):
     return 2 * capillary_radius
 
 
-def plot_hexagonal_fibers(fiber_dia, num_rings=3, spacing_factor=1.0):
-    """
-    Plots the fibers in a hexagonal pattern.
 
-    Parameters:
-        fiber_dia (float): Diameter of the fibers.
-        num_rings (int): Number of hexagonal rings around the central fiber.
-        spacing_factor (float): Factor to adjust spacing between fibers (1.0 = touching).
-    """
-    centers_x, centers_y = hexagonal_fiber_layout(fiber_dia, num_rings, spacing_factor)
-    cap_dia = calculate_capillary_diameter(fiber_dia, num_rings, spacing_factor)
-
-    # Create figure
-    fig, ax = plt.subplots(figsize=(10, 10))
-    ax.set_aspect("equal")
-
-    # Plot each fiber as a circle
-    for x, y in zip(centers_x, centers_y):
-        circle = plt.Circle((x, y), fiber_dia / 2, fill=False, edgecolor="blue")
-        ax.add_patch(circle)
-
-    circle = plt.Circle((0, 0), cap_dia / 2, fill=False, edgecolor="green")
-    ax.add_patch(circle)
-
-    # Set limits with some padding
-    max_extent = max(
-        max(abs(centers_x) + fiber_dia / 2), max(abs(centers_y) + fiber_dia / 2)
-    )
-    ax.set_xlim(-max_extent * 1.1, max_extent * 1.1)
-    ax.set_ylim(-max_extent * 1.1, max_extent * 1.1)
-
-    # Add grid and labels
-    ax.grid(True, linestyle="--", alpha=0.7)
-    ax.set_title(f"Hexagonal Fiber Layout - {len(centers_x)} fibers")
-    ax.set_xlabel("X position")
-    ax.set_ylabel("Y position")
-
-    # Show fiber count and parameters
-    info_text = (
-        f"Diameter: {fiber_dia}\nSpacing factor: {spacing_factor}\nRings: {num_rings}"
-    )
-    ax.text(
-        0.02,
-        0.98,
-        info_text,
-        transform=ax.transAxes,
-        verticalalignment="top",
-        bbox=dict(boxstyle="round", facecolor="white", alpha=0.8),
-    )
-
-    plt.tight_layout()
-    return fig, ax
-
-
-# Example usage
-if __name__ == "__main__":
-    # Example: 125 µm diameter fibers with 3 rings
-    fiber_diameter = 125
-    fig, ax = plot_hexagonal_fibers(fiber_diameter, num_rings=2, spacing_factor=1.05)
-    plt.show()
