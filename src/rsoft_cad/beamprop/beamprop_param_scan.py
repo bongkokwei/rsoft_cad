@@ -46,6 +46,8 @@ def beamprop_tapered_lantern(
         hide_sim=True,
     )
 
+    return core_map
+
 
 def main():
     """Parse command line arguments and run tapered lantern simulations."""
