@@ -1,6 +1,5 @@
-from parameterised_lanterns import make_parameterised_lantern
+from rsoft_cad.simulations import make_parameterised_lantern
 from functools import partial
-from rsoft_cad.geometry import calculate_taper_properties
 import numpy as np
 import pandas as pd
 import os
