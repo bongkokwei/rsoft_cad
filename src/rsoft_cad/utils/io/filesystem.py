@@ -11,6 +11,8 @@ import glob
 import numpy as np
 import shutil
 
+from .finders import find_files_by_extension
+
 
 def copy_files_to_destination(file_list, destination_folder):
     """
@@ -80,4 +82,43 @@ def get_next_run_folder(folder_path, prefix):
     return f"{prefix}{max_run + 1:03d}"
 
 
+def copy_files_by_extension(expt_dir, extension, include_subfolders=True):
+    """
+    Finds files with a specific extension in a source folder and copies them to a destination folder.
 
+    Args:
+        expt_dir (str): Experiment directory name
+        extension (str): File extension to search for (e.g. ".nef")
+        include_subfolders (bool, optional): Whether to search subfolders. Defaults to True.
+
+    Returns:
+        list: List of copied file paths
+    """
+    # Set up the source and destination folders
+    source_folder = os.path.join(
+        "output",
+        expt_dir,
+        "rsoft_data_files",
+    )
+
+    destination_folder = os.path.join(
+        "output",
+        expt_dir,
+        "rsoft_data_files",
+        "nef_folder",
+    )
+
+    # Step 1: Find the files
+    files_to_copy = find_files_by_extension(
+        source_folder, extension, include_subfolders=include_subfolders
+    )
+
+    # Step 2: Copy the files
+    copied_files = copy_files_to_destination(files_to_copy, destination_folder)
+
+    # Step 3: Print summary
+    print(f"Copied {len(copied_files)} files to {destination_folder}")
+    for file in copied_files:
+        print(f"  - {file}")
+
+    return copied_files

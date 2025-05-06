@@ -23,7 +23,11 @@ from .visualisation.monitor_plots import plot_mon_data
 # Import I/O functions
 from .io.readers import read_field_data, read_mon_file, read_nef_file
 from .io.finders import find_files_by_extension, find_fld_files, find_mon_files
-from .io.filesystem import get_next_run_folder, copy_files_to_destination
+from .io.filesystem import (
+    get_next_run_folder,
+    copy_files_to_destination,
+    copy_files_by_extension,
+)
 
 # Import config functions
 from .config.modifier import load_config, save_config, modify_parameter
