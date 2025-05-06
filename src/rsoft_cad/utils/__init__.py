@@ -8,11 +8,11 @@ creating and manipulating photonic lantern layouts, and visualizing data.
 """
 
 # Import lantern layout functions
-from .lantern.circular import lantern_layout, find_scale_factor
-from .lantern.hexagonal import hexagonal_fiber_layout, calculate_capillary_diameter
+from .fiber_layout.circular import lantern_layout, find_scale_factor
+from .fiber_layout.hexagonal import hexagonal_fiber_layout, calculate_capillary_diameter
 
-# Import visualization functions
-from .lantern.visualization import (
+# Import visualisation functions
+from .fiber_layout.visualise_layout import (
     visualise_lantern,
     visualise_lp_lantern,
     plot_hexagonal_fibers,
@@ -31,6 +31,12 @@ from .io.filesystem import (
 
 # Import config functions
 from .config.modifier import load_config, save_config, modify_parameter
+
+from .mode_utils import (
+    get_modes_below_cutoff,
+    group_modes_by_radial_number,
+    find_segment_by_comp_name,
+)
 
 # Version information
 __version__ = "0.1.0"

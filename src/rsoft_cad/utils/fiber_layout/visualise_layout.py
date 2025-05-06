@@ -1,10 +1,16 @@
 # lantern/visualization.py
 """
-Visualization module for RSoft CAD utilities
+Visualisation module for RSoft CAD utilities
 """
 
 import numpy as np
 import matplotlib.pyplot as plt
+
+from rsoft_cad.utils.fiber_layout.circular import lantern_layout
+from rsoft_cad.utils.fiber_layout.hexagonal import (
+    hexagonal_fiber_layout,
+    calculate_capillary_diameter,
+)
 
 
 def visualise_lantern(n, cladding_dia=125, show_scale_factor_plot=True):
@@ -138,7 +144,6 @@ def plot_hexagonal_fibers(fiber_dia, num_rings=3, spacing_factor=1.0):
     return fig, ax
 
 
-
 def visualise_lp_lantern(lp_modes_dict, cladding_dia=125):
     """
     Visualize a lantern layout with LP modes positioned according to the provided dictionary.
@@ -195,5 +200,3 @@ def visualise_lp_lantern(lp_modes_dict, cladding_dia=125):
     plt.grid(True, linestyle="--", alpha=0.5)
 
     return (fig, ax)
-
-

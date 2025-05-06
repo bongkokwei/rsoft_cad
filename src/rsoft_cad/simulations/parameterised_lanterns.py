@@ -6,7 +6,9 @@ import matplotlib.pyplot as plt
 from functools import partial
 
 # Import custom modules
-from rsoft_cad.rsoft_mspl import ModeSelectiveLantern
+from rsoft_cad.lantern import ModeSelectiveLantern
+
+# from rsoft_cad.rsoft_mspl import ModeSelectiveLantern
 from rsoft_cad.rsoft_simulations import run_simulation
 from rsoft_cad.utils import visualise_lantern
 from rsoft_cad.geometry import calculate_taper_properties
