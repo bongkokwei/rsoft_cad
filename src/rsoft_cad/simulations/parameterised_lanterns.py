@@ -28,6 +28,11 @@ def make_parameterised_lantern(
     expt_dir="pl_property_scan",
     num_grid=400,
     mode_output="OUTPUT_REAL_IMAG",
+    core_dict=None,
+    cladding_dia_dict=None,
+    bg_index_dict=None,
+    cladding_index_dict=None,
+    core_index_dict=None,
 ):
     """
     Create a parameterised photonic lantern configuration
@@ -54,6 +59,21 @@ def make_parameterised_lantern(
         taper_factor=taper_factor,
         taper_length=taper_length,
     )
+
+    if core_dict is not None:
+        mspl.set_core_dia(core_dict)
+
+    if cladding_dia_dict is not None:
+        mspl.set_cladding_dia(cladding_dia_dict)
+
+    if bg_index_dict is not None:
+        mspl.set_bg_index(bg_index_dict)
+
+    if cladding_index_dict is not None:
+        mspl.set_cladding_index(cladding_index_dict)
+
+    if core_index_dict is not None:
+        mspl.set_core_index(core_index_dict)
 
     # Calculate simulation boundaries based on capillary diameter
     # Calculate simulation boundary
@@ -128,6 +148,13 @@ def make_parameterised_lantern(
 
     # Save the input parameters to a file
     params = {
+        "boundary_max": boundary_max,
+        "boundary_min": boundary_min,
+        "boundary_max_y": boundary_max_y,
+        "boundary_min_y": boundary_min_y,
+        "domain_min": domain_min,
+        "grid_size": grid_size_x,
+        "grid_size_y": grid_size_y,
         "highest_mode": highest_mode,
         "launch_mode": launch_mode,
         "opt_name": opt_name,
@@ -165,7 +192,7 @@ if __name__ == "__main__":
         sim_type="femsim",
         femnev=6,
         taper_length=49400,
-        expt_dir="n_eff_scan",
+        expt_dir="lantern_test",
     )
 
     lantern(domain_min=0, opt_name="test_run")
