@@ -70,12 +70,13 @@ def plot_component(
             ax.plot(
                 x_values,
                 values,
-                ".-",
-                color=cmap(i / len(unique_indices)),
+                marker="o",
+                markerfacecolor="none",  # Makes circles unfilled
+                markeredgecolor=cmap(i / len(unique_indices)),  # Color for the outline
+                linestyle="none",  # This prevents connecting lines
                 label=f"Index {idx}",
                 markersize=3,
             )
-
     # Set labels and grid
     x_axis_label = "Filename" if use_filename_as_x else "Taper length (micron)"
     y_axis_label = "Real(n_eff)" if component_type == "real" else "Im(n_eff)"

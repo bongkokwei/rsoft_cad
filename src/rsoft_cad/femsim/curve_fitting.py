@@ -48,7 +48,7 @@ def double_exp_decay(x, A, B, C, D, E):
     return A + B * np.exp(-x / C) + D * np.exp(-x / E)
 
 
-def polynomial(x, a, b, c):
+def polynomial(x, a, b, c, d, e, f, g, h, i):
     """
     Simple polynomial function for fitting.
 
@@ -56,7 +56,7 @@ def polynomial(x, a, b, c):
     -----------
     x : array-like
         Independent variable
-    a, b, c : float
+    a, b, c, ... : float
         Polynomial coefficients
 
     Returns:
@@ -64,7 +64,17 @@ def polynomial(x, a, b, c):
     y : array-like
         a*x^2 + b*x + c
     """
-    return a * x**2 + b * x + c
+    return (
+        a * x**8
+        + b * x**7
+        + c * x**6
+        + d * x**5
+        + e * x**4
+        + f * x**3
+        + g * x**2
+        + h * x
+        + i
+    )
 
 
 def fit_index_data(
