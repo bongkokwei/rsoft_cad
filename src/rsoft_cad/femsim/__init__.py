@@ -37,7 +37,7 @@ from .visualisation import (
 
 from .utils import filter_indices
 
-from .plot import nef_plot
+from .femsim_plot import nef_plot
 
 from .param_scan import femsim_tapered_lantern, femsimulation
 
