@@ -63,19 +63,19 @@ def make_parameterised_lantern(
     )
 
     if core_dict is not None:
-        mspl.set_core_dia(core_dict)
+        mspl.fiber_config.set_core_dia(core_dict)
 
     if cladding_dia_dict is not None:
-        mspl.set_cladding_dia(cladding_dia_dict)
+        mspl.fiber_config.set_cladding_dia(cladding_dia_dict)
 
     if bg_index_dict is not None:
-        mspl.set_bg_index(bg_index_dict)
+        mspl.fiber_config.set_bg_index(bg_index_dict)
 
     if cladding_index_dict is not None:
-        mspl.set_cladding_index(cladding_index_dict)
+        mspl.fiber_config.set_cladding_index(cladding_index_dict)
 
     if core_index_dict is not None:
-        mspl.set_core_index(core_index_dict)
+        mspl.fiber_config.set_core_index(core_index_dict)
 
     # Calculate simulation boundaries based on capillary diameter
     # Calculate simulation boundary
