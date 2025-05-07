@@ -17,13 +17,17 @@ from .fiber_layout.visualise_layout import (
     visualise_lp_lantern,
     plot_hexagonal_fibers,
 )
-from .visualisation.field_plots import plot_field_data
-from .visualisation.monitor_plots import plot_mon_data
+from .rsoft_file_plot.field_plots import plot_field_data
+from .rsoft_file_plot.monitor_plots import plot_mon_data
 
 # Import I/O functions
-from .io.readers import read_field_data, read_mon_file, read_nef_file
-from .io.finders import find_files_by_extension, find_fld_files, find_mon_files
-from .io.filesystem import (
+from .rsoft_file_io.readers import read_field_data, read_mon_file, read_nef_file
+from .rsoft_file_io.finders import (
+    find_files_by_extension,
+    find_fld_files,
+    find_mon_files,
+)
+from .rsoft_file_io.filesystem import (
     get_next_run_folder,
     copy_files_to_destination,
     copy_files_by_extension,

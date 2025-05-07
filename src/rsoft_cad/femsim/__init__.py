@@ -1,8 +1,9 @@
 """
-NEF File Plotter - A tool for analyzing and visualizing multiple .nef files.
+Lantern module for RSoft CAD package.
 
-This package provides functionality to process, analyze, and visualize data from
-.nef files typically used in optical waveguide simulations.
+This package provides classes and utilities for designing and simulating
+photonic lantern structures, particularly mode-selective lanterns used
+in spatial mode multiplexing applications.
 """
 
 from .data_processing import (
