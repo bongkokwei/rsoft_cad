@@ -37,7 +37,7 @@ def run_simulation(
 
     # Change to the target directory
     os.chdir(target_dir)
-    print(f"Running simulation ...\n")
+    # print(f"Running simulation ...\n")
 
     result = subprocess.run(
         command_args,

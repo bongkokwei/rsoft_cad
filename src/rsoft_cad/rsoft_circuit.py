@@ -216,7 +216,7 @@ class RSoftCircuit:
             with open(filepath, "w") as f:
                 f.write(content)
 
-            print(f"Circuit written to {filepath}")
+            # print(f"Circuit written to {filepath}")
             return True
 
         except Exception as e:
