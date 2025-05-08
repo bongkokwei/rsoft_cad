@@ -20,7 +20,8 @@ def configure_logging(log_file="simulation.log", log_level=logging.INFO):
 
     logging.basicConfig(
         level=log_level,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        # format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        format="%(asctime)s - \n\t %(module)s.%(funcName)s - \n\t %(levelname)s - \n\t %(message)s",
         handlers=[
             logging.FileHandler(log_file),
             logging.StreamHandler(),  # Prints to console as well
