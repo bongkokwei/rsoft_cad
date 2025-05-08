@@ -40,17 +40,22 @@ class ModeSelectiveLantern(BaseLantern):
 
     def create_lantern(
         self,
-        highest_mode="LP02",
-        launch_mode="LP01",
-        taper_factor=5,
-        taper_length=80000,
-        core_diameters=None,
-        savefile=True,
-        femnev=1,
-        femsim=True,
-        opt_name=0,
-        sim_params=None,
-    ):
+        highest_mode: str = "LP02",
+        launch_mode: str | list[str] = "LP01",
+        taper_factor: float = 5,
+        taper_length: float = 80000,
+        core_diameters: dict[str, float] | None = None,
+        savefile: bool = True,
+        femnev: int = 1,
+        femsim: bool = True,
+        opt_name: int | str = 0,
+        sim_params: dict[str, any] | None = None,
+        core_dia_dict: dict[str, float] | None = None,
+        cladding_dia_dict: dict[str, float] | None = None,
+        bg_index_dict: dict[str, float] | None = None,
+        cladding_index_dict: dict[str, float] | None = None,
+        core_index_dict: dict[str, float] | None = None,
+    ) -> dict[str, tuple[float, float]]:
         """
         Create and configure a mode selective lantern.
 
@@ -66,26 +71,31 @@ class ModeSelectiveLantern(BaseLantern):
 
         Args:
             highest_mode (str): The highest LP mode to support (default: "LP02")
-            launch_mode (str): The mode to launch from (default: "LP01")
-            core_diameters (dict, optional): Dictionary mapping mode names to core diameters.
-                                          If None, default values will be used.
-                                          Example: {"LP01": 10.7, "LP11a": 9.6}
+            launch_mode (str | list[str]): The mode(s) to launch from (default: "LP01")
             taper_factor (float): The factor by which the fibers are tapered (default: 5)
             taper_length (float): The length of the taper in microns (default: 80000)
+            core_diameters (dict[str, float] | None): Dictionary mapping mode names to core diameters.
+                                          If None, default values will be used.
+                                          Example: {"LP01": 10.7, "LP11a": 9.6}
             savefile (bool): Whether to save the design file (default: True)
             femnev (int): Number of eigenmodes to find in FEM simulation (default: 1)
             femsim (bool): Whether to use FEM simulation (default: True)
-            opt_name (int or str): Optional name identifier for the output file (default: 0)
-            sim_params (dict, optional): Dictionary of simulation parameters to override defaults.
+            opt_name (int | str): Optional name identifier for the output file (default: 0)
+            sim_params (dict[str, any] | None): Dictionary of simulation parameters to override defaults.
                                        Any parameter that can be passed to update_global_params.
                                        Example: {
                                          "grid_size": 0.5,
                                          "boundary_max": 100,
                                          "sim_tool": "ST_FEMSIM"
                                        }
+            core_dia_dict (dict[str, float] | None): Dictionary to set core diameters for specific modes
+            cladding_dia_dict (dict[str, float] | None): Dictionary to set cladding diameters for specific modes
+            bg_index_dict (dict[str, float] | None): Dictionary to set background indices for specific modes
+            cladding_index_dict (dict[str, float] | None): Dictionary to set cladding indices for specific modes
+            core_index_dict (dict[str, float] | None): Dictionary to set core indices for specific modes
 
         Returns:
-            dict: The core map showing the spatial layout of supported modes
+            dict[str, tuple[float, float]]: The core map showing the spatial layout of supported modes
         """
         # Create a core map for the specified highest mode
         core_map, cap_dia = create_core_map(highest_mode, self.cladding_dia)
@@ -98,8 +108,10 @@ class ModeSelectiveLantern(BaseLantern):
         self.num_cores = len(self.bundle)
 
         # Use provided core diameters or set defaults
-        if core_diameters is None:
-            # Default core diameters to use if none provided
+
+        if core_dia_dict is not None:
+            self.fiber_config.set_core_dia(core_dia_dict)
+        else:
             core_diameters = {
                 "LP01": 10.7,  # Fundamental mode gets largest core
                 "LP11a": 9.6,  # First higher-order mode pair
@@ -108,12 +120,21 @@ class ModeSelectiveLantern(BaseLantern):
                 "LP21b": 8.5,
                 "LP02": 7.35,  # Second radial mode gets smallest core
             }
+            self.fiber_config.set_core_dia(core_diameters)
 
-        # Filter the core diameters to only include modes that exist in the bundle
-        core_dia_dict = self.fiber_config.filter_core_diameters(core_diameters)
+        if cladding_dia_dict is not None:
+            self.fiber_config.set_cladding_dia(cladding_dia_dict)
+
+        if cladding_index_dict is not None:
+            self.fiber_config.set_cladding_index(cladding_index_dict)
+
+        if core_index_dict is not None:
+            self.fiber_config.set_core_index(core_index_dict)
+
+        if bg_index_dict is not None:
+            self.fiber_config.set_bg_index(bg_index_dict)
 
         # Configure fiber properties
-        self.fiber_config.set_core_dia(core_dia_dict)
         self.set_taper_factor(taper_factor)
         self.set_taper_length(taper_length)
 
