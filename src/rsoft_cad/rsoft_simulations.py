@@ -1,33 +1,61 @@
-import subprocess
-import os
 import re
+import os
+import subprocess
+import logging
+from typing import Optional, Union, List, Dict, Any
+from subprocess import CompletedProcess
 
 
 def run_simulation(
-    design_filepath,
-    design_filename,
-    sim_package,
-    prefix_name,
-    save_folder="launch_files",
-    hide_sim=True,
-):
+    design_filepath: str,
+    design_filename: str,
+    sim_package: str,
+    prefix_name: str,
+    save_folder: str = "launch_files",
+    hide_sim: bool = True,
+) -> CompletedProcess:
     """
     Run simulation for the specified design file and launch mode.
-    Parameters:
-    sim_package (str): femsim or bsimw32
-    prefix_name (str): Prefix to use for output files
-    save_folder (str): Folder name to save simulation results
+
+    This function executes a simulation for a given photonic lantern design file using the specified
+    simulation package. It creates a target directory for simulation results if it doesn't exist,
+    changes to that directory to run the simulation, and then returns to the original directory.
+
+    Args:
+        design_filepath (str): Path to the directory containing the design file
+        design_filename (str): Name of the design file to simulate
+        sim_package (str): Simulation package to use (e.g., 'femsim' or 'bsimw32')
+        prefix_name (str): Prefix to use for output files
+        save_folder (str): Folder name to save simulation results (default: "launch_files")
+        hide_sim (bool): Whether to hide the simulation window (default: True)
+
     Returns:
-    subprocess.CompletedProcess: Result of the simulation
+        CompletedProcess: Result of the simulation process, containing stdout, stderr, and return code
+
+    Raises:
+        OSError: If there are issues creating directories or changing working directory
+        subprocess.SubprocessError: If the simulation process fails to execute
     """
+    # Set up logger
+    logger = logging.getLogger(__name__)
+
+    logger.info(f"Starting simulation for design: {design_filename}")
+    logger.debug(
+        f"Simulation parameters: package={sim_package}, prefix={prefix_name}, hide={hide_sim}"
+    )
+
     # Save simulation results to this directory
     target_dir = os.path.join(design_filepath, save_folder)
+    logger.debug(f"Target directory for simulation results: {target_dir}")
+
     # Create the folder if it doesn't exist
     if not os.path.exists(target_dir):
+        logger.debug(f"Creating folder: {target_dir}")
         os.makedirs(target_dir)
-        print(f"Created folder: {target_dir}")
+
     # Store original directory to return to later
     original_dir = os.getcwd()
+    logger.debug(f"Current working directory: {original_dir}")
 
     # Construct command arguments based on hide_sim
     command_args = [sim_package]
@@ -35,17 +63,31 @@ def run_simulation(
         command_args.append("-hide")
     command_args.extend([os.path.join("..", design_filename), f"prefix={prefix_name}"])
 
-    # Change to the target directory
-    os.chdir(target_dir)
-    # print(f"Running simulation ...\n")
+    logger.debug(f"Command to execute: {' '.join(command_args)}")
 
+    # Change to the target directory
+    logger.debug(f"Changing directory to: {target_dir}")
+    os.chdir(target_dir)
+
+    # Run the simulation
+    logger.info(f"Executing simulation with prefix: {prefix_name}")
     result = subprocess.run(
         command_args,
         capture_output=True,
         text=True,
     )
+
+    # Log the result status
+    if result.returncode == 0:
+        logger.info(f"Simulation completed successfully")
+    else:
+        logger.error(f"Simulation failed with return code: {result.returncode}")
+        logger.debug(f"Error output: {result.stderr}")
+
     # Change back to the original directory
+    logger.debug(f"Changing back to original directory: {original_dir}")
     os.chdir(original_dir)
+
     return result
 
 
