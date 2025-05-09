@@ -228,7 +228,7 @@ def plot_combined_taper(model, num_cross_sections=6, figsize=(15, 6)):
 
 if __name__ == "__main__":
     """7 cores configuration"""
-    layers_config_7_fibers = [(1, 0), (6, 2)]
+    layers_config_7_fibers = [(1, 0), (5, 2)]
     core_map_7_fibers = model_photonic_lantern_taper(
         z_points=200,
         taper_length=50,
