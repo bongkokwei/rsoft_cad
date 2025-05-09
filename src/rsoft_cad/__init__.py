@@ -30,3 +30,6 @@ def configure_logging(log_file="simulation.log", log_level=logging.INFO):
 
     # Return the root logger in case the caller wants to customize it further
     return logging.getLogger()
+
+
+from rsoft_cad.rsoft_circuit import TaperType, LaunchType, MonitorType

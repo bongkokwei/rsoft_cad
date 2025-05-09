@@ -32,12 +32,14 @@ class RSoftCircuit:
         self.pathway_counter = 0
         self.monitor_counter = 0
         self.launch_field_counter = 0
+        self.user_taper_counter = 0
 
         # Store generated elements
         self.segments = []
         self.pathways = []
         self.monitors = []
         self.launch_fields = []
+        self.user_tapers = []
 
     def update_global_params(self, **params):
         # TODO: Add some data validations
@@ -162,6 +164,31 @@ class RSoftCircuit:
 
         return launch_text
 
+    def add_user_taper(self, user_taper_id=None, **properties):
+        if user_taper_id is None:
+            self.user_taper_counter += 1
+            user_taper_id = self.user_taper_counter
+
+        # Default user taper properties
+        user_taper_props = {
+            "type": UserTaper.DATA_FILE,
+            "filename": "custom.dat",
+        }
+
+        # Update with any custom properties
+        user_taper_props.update(properties)
+
+        # Generate the user taper text
+        user_taper_text = f"user_taper {user_taper_id}\n"
+        for key, value in user_taper_props.items():
+            user_taper_text += f"\t{key} = {value}\n"
+        user_taper_text += "end user_taper\n"
+
+        # Store the user taper
+        self.user_tapers.append(user_taper_text)
+
+        return user_taper_text
+
     def write(self, filepath):
         """
         Combine all generated circuit elements and write them to a file.
@@ -187,6 +214,11 @@ class RSoftCircuit:
             for key, value in self.params.items():
                 content += f"{key} = {value}\n"
             content += "\n"
+
+            if self.user_tapers:
+                content += "#User taper\n"
+                for user_taper in self.user_tapers:
+                    content += user_taper + "\n"
 
             # Add segments
             if self.segments:
@@ -228,22 +260,49 @@ class RSoftCircuit:
         return f"{var_name} rel begin segment {segment_id}"
 
 
-if __name__ == "__main__":
-    # Example usage:
-    circuit = RSoftCircuit()
+class TaperType:
+    NONE = "TAPER_NONE"
+    LINEAR = "TAPER_LINEAR"
+    QUADRATIC = "TAPER_QUADRATIC"
+    EXPONENTIAL = "TAPER_EXPONENTIAL"
+    USER_1 = "TAPER_USER_1"
+    USER_2 = "TAPER_USER_2"
+    USER_3 = "TAPER_USER_3"
+    USER_4 = "TAPER_USER_4"
+    USER_5 = "TAPER_USER_5"
+    USER_6 = "TAPER_USER_6"
+    USER_7 = "TAPER_USER_7"
+    USER_8 = "TAPER_USER_8"
+    USER_8 = "TAPER_USER_9"
+    USER_10 = "TAPER_USER_10"
 
-    # Add some segments
-    circuit.add_segment()
-    circuit.add_segment()
 
-    # Add a pathway using these segments
-    circuit.add_pathways(segment_ids=[1, 2])
+class LaunchType:
+    FILE = "LAUNCH_FILE"
+    COMPUTED_MODE = "LAUNCH_COMPMODE"
+    FIBER_MODE = "LAUNCH_WGMODE"
+    GAUSSIAN = "LAUNCH_GAUSSIAN"
+    RECTANGLE = "LAUNCH_RECTANGLE"
+    MULTIMODE = "LAUNCH_MULTIMODE"
+    PLANE_WAVE = "LAUNCH_PLANEWAVE"
 
-    # Add a monitor for the pathway
-    circuit.add_pathways_monitor(monitor_id=1, pathway_id=1)
 
-    # Add a launch field
-    circuit.add_launch_field(launch_id=1, pathway_id=1)
+class MonitorType:
+    FILE_POWER = "MONITOR_FILE_POWER"
+    FILE_PHASE = "MONITOR_FILE_PHASE"
+    FIBER_POWER = "MONITOR_WGMODE_POWER"
+    FIBER_PHASE = "MONITOR_WGMODE_PHASE"
+    GAUSS_POWER = "MONITOR_GAUSS_POWER"
+    GAUSS_PHASE = "MONITOR_GAUSS_PHASE"
+    LAUNCH_POWER = "MONITOR_LAUNCH_POWER"
+    LAUNCH_PHASE = "MONITOR_LAUNCH_PHASE"
+    PARTIAL_POWER = "MONITOR_WG_POWER"
+    TOTAL_POWER = "MONITOR_TOTAL_POWER"
+    N_EFF = "MONITOR_FIELD_NEFF"
+    FIELD_WIDTH = "MONITOR_FIELD_WIDTH"
+    FIELD_HEIGHT = "MONITOR_FIELD_HEIGHT"
+    FIELD_AREA = "MONITOR_FIELD_AEFF"
 
-    # Write the circuit to a file
-    circuit.write("output/my_circuit.ind")
+
+class UserTaper:
+    DATA_FILE = "UF_DATAFILE"

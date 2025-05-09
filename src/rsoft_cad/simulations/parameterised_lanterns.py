@@ -13,6 +13,7 @@ from rsoft_cad.lantern import ModeSelectiveLantern
 from rsoft_cad.rsoft_simulations import run_simulation
 from rsoft_cad.utils import visualise_lantern
 from rsoft_cad.geometry import calculate_taper_properties
+from rsoft_cad import LaunchType, MonitorType, TaperType
 
 
 def make_parameterised_lantern(
@@ -36,6 +37,10 @@ def make_parameterised_lantern(
     bg_index_dict: dict[str, float] | None = None,
     cladding_index_dict: dict[str, float] | None = None,
     core_index_dict: dict[str, float] | None = None,
+    monitor_type: MonitorType = MonitorType.FIBER_POWER,
+    taper_type: TaperType = TaperType.LINEAR,
+    launch_type: LaunchType = LaunchType.GAUSSIAN,
+    custom_taper_filename: str = "custom.dat",
 ) -> tuple[str, str, dict[str, tuple[float, float]]]:
     """
     Create a parameterised photonic lantern configuration with specified properties.
@@ -65,6 +70,10 @@ def make_parameterised_lantern(
         bg_index_dict (dict[str, float] | None): Dictionary mapping modes to background indices (default: None)
         cladding_index_dict (dict[str, float] | None): Dictionary mapping modes to cladding indices (default: None)
         core_index_dict (dict[str, float] | None): Dictionary mapping modes to core indices (default: None)
+        monitor_type: Type of monitor to add to each pathway. Defaults to FIBER_POWER.
+        taper_type: Taper profile to use if tapering is applied. Defaults to LINEAR.
+        launch_type: Type of field distribution to launch. Defaults to GAUSSIAN.
+
 
     Returns:
         tuple[str, str, dict[str, tuple[float, float]]]: A tuple containing:
@@ -113,6 +122,10 @@ def make_parameterised_lantern(
         bg_index_dict=bg_index_dict,
         cladding_index_dict=cladding_index_dict,
         core_index_dict=core_index_dict,
+        taper_type=taper_type,
+        monitor_type=monitor_type,
+        launch_type=launch_type,
+        custom_taper_filename=custom_taper_filename,
     )
     logger.debug(f"Lantern created with {len(core_map)} cores")
 
