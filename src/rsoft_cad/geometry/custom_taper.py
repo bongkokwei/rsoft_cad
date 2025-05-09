@@ -233,7 +233,7 @@ if __name__ == "__main__":
         z_points=200,
         taper_length=50,
         initial_diameter=125,
-        final_core_diameter=40,
+        final_core_diameter=20,
         capillary_id=375,
         capillary_od=900,
         layers_config=layers_config_7_fibers,
