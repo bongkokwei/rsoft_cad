@@ -35,6 +35,8 @@ class SegmentManager:
         core_or_clad: str = "core",
         monitor_type: MonitorType = MonitorType.FIBER_POWER,
         taper_type: TaperType = TaperType.LINEAR,
+        segment_prop_overrides: Optional[Dict[str, Any]] = None,
+        per_fiber_overrides: Optional[Dict[str, Dict[str, Any]]] = None,
     ) -> bool:
         """
         Add a fiber segment with core and cladding based on fiber properties.
@@ -52,9 +54,29 @@ class SegmentManager:
             core_or_clad: Whether to add "core" or "cladding" segments. Defaults to "core".
             monitor_type: Type of monitor to add to each pathway. Defaults to FIBER_POWER.
             taper_type: Taper profile to use if tapering is applied. Defaults to LINEAR.
+            segment_prop_overrides: Dictionary to override default properties for all segments.
+                                  Keys should match the segment property names (e.g., 'begin.x', 'end.z').
+            per_fiber_overrides: Dictionary mapping LP mode names to property overrides for specific fibers.
+                                Each value should be a dictionary of property name to value mappings.
 
         Returns:
             True if the segments were successfully added.
+
+        Examples:
+            # Basic usage (existing functionality)
+            manager.add_fiber_segment(bundle)
+
+            # Override properties for all fibers
+            manager.add_fiber_segment(bundle, segment_prop_overrides={"begin.z": 5})
+
+            # Override properties for specific fibers
+            manager.add_fiber_segment(
+                bundle,
+                per_fiber_overrides={
+                    "LP01": {"comp_name": "CORE_LP01_SPECIAL"},
+                    "LP11": {"begin.width": 12}
+                }
+            )
         """
         for lp_mode, fiber_prop in bundle.items():
             delta = fiber_prop[f"{core_or_clad}_index"] - fiber_prop[f"bg_index"]
@@ -76,6 +98,14 @@ class SegmentManager:
                 / fiber_prop["taper_factor"],
                 "end.delta": delta,
             }
+
+            # Apply global overrides if provided
+            if segment_prop_overrides:
+                segment_prop.update(segment_prop_overrides)
+
+            # Apply per-fiber overrides if provided
+            if per_fiber_overrides and lp_mode in per_fiber_overrides:
+                segment_prop.update(per_fiber_overrides[lp_mode])
 
             if fiber_prop["taper_factor"] > 1:
                 segment_prop.update(
@@ -100,6 +130,8 @@ class SegmentManager:
         taper_factor: float,
         taper_length: float,
         taper_type: TaperType = TaperType.LINEAR,
+        segment_prop_overrides: Optional[Dict[str, Any]] = None,
+        monitor_type: MonitorType = MonitorType.FIBER_POWER,
     ) -> bool:
         """
         Add a capillary segment to contain the fibers.
@@ -112,11 +144,23 @@ class SegmentManager:
             cap_dia: Capillary diameter in microns
             taper_factor: Taper factor for the capillary (ratio of input to output diameter)
             taper_length: Taper length in microns
-            monitor_type: Type of monitor to add to each pathway. Defaults to FIBER_POWER.
             taper_type: Taper profile to use if tapering is applied. Defaults to LINEAR.
+            segment_prop_overrides: Dictionary to override default properties for the capillary segment.
+                                  Keys should match the segment property names (e.g., 'begin.x', 'end.z').
+            monitor_type: Type of monitor to add to the pathway. Defaults to FIBER_POWER.
 
         Returns:
             True if the capillary segment was successfully added
+
+        Examples:
+            # Basic usage (existing functionality)
+            manager.add_capillary_segment(100, 2, 1000)
+
+            # Override capillary properties
+            manager.add_capillary_segment(
+                100, 2, 1000,
+                segment_prop_overrides={"comp_name": "CAPILLARY_CUSTOM", "begin.x": 10}
+            )
         """
         delta = 0
         # Default segment properties
@@ -136,6 +180,10 @@ class SegmentManager:
             "end.delta": delta,
         }
 
+        # Apply overrides if provided
+        if segment_prop_overrides:
+            segment_prop.update(segment_prop_overrides)
+
         if taper_factor > 1:
             segment_prop.update(
                 width_taper=taper_type,
@@ -147,7 +195,9 @@ class SegmentManager:
 
         # Add pathway with this segment
         self.circuit.add_pathways(segment_ids=self.circuit.segment_counter)
-        self.circuit.add_pathways_monitor(pathway_id=self.circuit.pathway_counter)
+        self.circuit.add_pathways_monitor(
+            pathway_id=self.circuit.pathway_counter, monitor_type=monitor_type
+        )
 
         return True
 
@@ -156,6 +206,7 @@ class SegmentManager:
         bundle: Dict[str, Dict[str, Union[float, str]]],
         lp_node: str,
         launch_type: LaunchType = LaunchType.GAUSSIAN,
+        launch_prop_overrides: Optional[Dict[str, Any]] = None,
     ) -> None:
         """
         Configure launch field from a specific fiber.
@@ -168,16 +219,39 @@ class SegmentManager:
             bundle: Dictionary mapping LP mode names to fiber properties
             lp_node: The LP mode identifier to launch from (key in the bundle dict)
             launch_type: Type of field distribution to launch. Defaults to GAUSSIAN.
+            launch_prop_overrides: Dictionary to override default launch properties.
+                                 Keys should match the launch field parameters
+                                 (e.g., 'launch_tilt', 'launch_width').
 
         Returns:
             None
+
+        Examples:
+            # Basic usage (existing functionality)
+            manager.launch_from_fiber(bundle, "LP01")
+
+            # Override launch properties
+            manager.launch_from_fiber(
+                bundle, "LP01",
+                launch_prop_overrides={
+                    "launch_tilt": 5,
+                    "launch_width": 20
+                }
+            )
         """
-        self.circuit.add_launch_field(
-            launch_type=launch_type,
-            launch_tilt=0,
-            launch_pathway=self.circuit.pathway_counter,
-            launch_width=bundle[lp_node]["core_dia"],
-            launch_height=bundle[lp_node]["core_dia"],
-            launch_position=bundle[lp_node]["pos_x"],
-            launch_position_y=bundle[lp_node]["pos_y"],
-        )
+        # Default launch properties
+        launch_params = {
+            "launch_type": launch_type,
+            "launch_tilt": 0,
+            "launch_pathway": self.circuit.pathway_counter,
+            "launch_width": bundle[lp_node]["core_dia"],
+            "launch_height": bundle[lp_node]["core_dia"],
+            "launch_position": bundle[lp_node]["pos_x"],
+            "launch_position_y": bundle[lp_node]["pos_y"],
+        }
+
+        # Apply overrides if provided
+        if launch_prop_overrides:
+            launch_params.update(launch_prop_overrides)
+
+        self.circuit.add_launch_field(**launch_params)
