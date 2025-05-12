@@ -260,21 +260,91 @@ class RSoftCircuit:
         return f"{var_name} rel begin segment {segment_id}"
 
 
+# class TaperType:
+#     NONE = "TAPER_NONE"
+#     LINEAR = "TAPER_LINEAR"
+#     QUADRATIC = "TAPER_QUADRATIC"
+#     EXPONENTIAL = "TAPER_EXPONENTIAL"
+#     USER_1 = "TAPER_USER_1"
+#     USER_2 = "TAPER_USER_2"
+#     USER_3 = "TAPER_USER_3"
+#     USER_4 = "TAPER_USER_4"
+#     USER_5 = "TAPER_USER_5"
+#     USER_6 = "TAPER_USER_6"
+#     USER_7 = "TAPER_USER_7"
+#     USER_8 = "TAPER_USER_8"
+#     USER_8 = "TAPER_USER_9"
+#     USER_10 = "TAPER_USER_10"
+
+
 class TaperType:
+    """
+    A class representing a taper profile with optional custom data file.
+    """
+
+    # Built-in taper types
     NONE = "TAPER_NONE"
     LINEAR = "TAPER_LINEAR"
     QUADRATIC = "TAPER_QUADRATIC"
     EXPONENTIAL = "TAPER_EXPONENTIAL"
-    USER_1 = "TAPER_USER_1"
-    USER_2 = "TAPER_USER_2"
-    USER_3 = "TAPER_USER_3"
-    USER_4 = "TAPER_USER_4"
-    USER_5 = "TAPER_USER_5"
-    USER_6 = "TAPER_USER_6"
-    USER_7 = "TAPER_USER_7"
-    USER_8 = "TAPER_USER_8"
-    USER_8 = "TAPER_USER_9"
-    USER_10 = "TAPER_USER_10"
+
+    # User taper type prefix
+    USER_PREFIX = "TAPER_USER_"
+
+    def __init__(self, taper_type, custom_filename=None):
+        """
+        Initialize a taper type, optionally with a custom filename.
+
+        Args:
+            taper_type (str): The taper type string
+            custom_filename (str, optional): For user tapers, the filename with taper data
+        """
+        self.taper_type = taper_type
+        self.custom_filename = custom_filename
+
+    def is_user_taper(self):
+        """Check if this is a user-defined taper that requires a custom file."""
+        return "USER" in self.taper_type
+
+    @classmethod
+    def none(cls):
+        """Create a taper with no tapering."""
+        return cls(cls.NONE)
+
+    @classmethod
+    def linear(cls):
+        """Create a linear taper."""
+        return cls(cls.LINEAR)
+
+    @classmethod
+    def quadratic(cls):
+        """Create a quadratic taper."""
+        return cls(cls.QUADRATIC)
+
+    @classmethod
+    def exponential(cls):
+        """Create an exponential taper."""
+        return cls(cls.EXPONENTIAL)
+
+    @classmethod
+    def user(cls, user_number, custom_filename):
+        """
+        Create a user-defined taper with associated data file.
+
+        Args:
+            user_number (int): User taper number (1-10)
+            custom_filename (str): Filename containing taper profile data
+
+        Returns:
+            TaperType: A user-defined taper type
+        """
+        if not 1 <= user_number <= 10:
+            raise ValueError(
+                f"User taper number must be between 1 and 10, got {user_number}"
+            )
+
+        taper_type = f"{cls.USER_PREFIX}{user_number}"
+        return cls(taper_type, custom_filename)
 
 
 class LaunchType:

@@ -38,9 +38,8 @@ def make_parameterised_lantern(
     cladding_index_dict: dict[str, float] | None = None,
     core_index_dict: dict[str, float] | None = None,
     monitor_type: MonitorType = MonitorType.FIBER_POWER,
-    taper_type: TaperType = TaperType.LINEAR,
     launch_type: LaunchType = LaunchType.GAUSSIAN,
-    custom_taper_filename: str = "custom.dat",
+    taper_config: TaperType | dict[str, TaperType] = TaperType.linear(),
 ) -> tuple[str, str, dict[str, tuple[float, float]]]:
     """
     Create a parameterised photonic lantern configuration with specified properties.
@@ -122,10 +121,9 @@ def make_parameterised_lantern(
         bg_index_dict=bg_index_dict,
         cladding_index_dict=cladding_index_dict,
         core_index_dict=core_index_dict,
-        taper_type=taper_type,
         monitor_type=monitor_type,
         launch_type=launch_type,
-        custom_taper_filename=custom_taper_filename,
+        taper_config=taper_config,
     )
     logger.debug(f"Lantern created with {len(core_map)} cores")
 
