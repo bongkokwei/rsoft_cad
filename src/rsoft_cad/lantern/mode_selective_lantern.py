@@ -208,6 +208,7 @@ class ModeSelectiveLantern(BaseLantern):
             taper_length,
             taper_type=self.get_segment_taper_type(taper_config, "cap"),
             segment_prop_overrides=self.cap_endpoints,
+            monitor_type=MonitorType.PARTIAL_POWER,
         )
 
         # Configure the launch field
