@@ -199,6 +199,70 @@ def model_photonic_lantern_taper(
     }
 
 
+def extract_lp_mode_endpoints(model_output):
+    """
+    Extract endpoint information for each LP mode from the photonic lantern taper model output.
+
+    Parameters:
+    -----------
+    model_output : dict
+        The dictionary returned by model_photonic_lantern_taper_with_modes function
+
+    Returns:
+    --------
+    dict
+        A dictionary with LP modes as keys, each containing endpoint information:
+        {
+            "LP01": {
+                "end.x": x_position,
+                "end.y": y_position,
+                "end.z": z_position,
+                "end.height": diameter,
+                "end.width": diameter,
+            },
+            ...
+        }
+    """
+    # Extract required data from the model output
+    z = model_output["z"]
+    fiber_diameters = model_output["fiber_diameters"]
+    lp_modes = model_output["lp_modes"]
+    mode_positions = model_output["mode_positions"]
+
+    # Get index of the end of the taper
+    end_idx = len(z) - 1
+    end_z = z[end_idx]
+
+    # Initialize the result dictionary
+    lp_mode_endpoints = {}
+
+    # For each LP mode, extract the endpoint information
+    for i, mode in enumerate(lp_modes):
+        # Get the final position
+        if mode in mode_positions:
+            # If we have mode_positions dictionary, use it directly
+            end_pos = mode_positions[mode][end_idx]
+            end_x, end_y = end_pos
+        else:
+            # Fall back to the fiber_positions array
+            end_x = model_output["fiber_positions"][end_idx, i, 0]
+            end_y = model_output["fiber_positions"][end_idx, i, 1]
+
+        # Get the final diameter
+        end_diameter = fiber_diameters[end_idx, i]
+
+        # Create the entry for this mode
+        lp_mode_endpoints[mode] = {
+            "end.x": float(end_x),
+            "end.y": float(end_y),
+            "end.z": float(end_z),
+            "end.height": float(end_diameter),
+            "end.width": float(end_diameter),
+        }
+
+    return lp_mode_endpoints
+
+
 def plot_taper_cross_sections(model, ax_row, num_sections=6):
     z = model["z"]
     fiber_diameters = model["fiber_diameters"]

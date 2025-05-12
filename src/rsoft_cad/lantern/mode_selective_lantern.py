@@ -10,6 +10,7 @@ from rsoft_cad.lantern.fiber_config import FiberConfigurator
 from rsoft_cad.lantern.segment_manager import SegmentManager
 from rsoft_cad.utils import visualise_lp_lantern
 from rsoft_cad.layout import create_core_map
+from rsoft_cad.geometry import model_photonic_lantern_taper, extract_lp_mode_endpoints
 from rsoft_cad import LaunchType, MonitorType, TaperType
 
 
@@ -66,7 +67,7 @@ class ModeSelectiveLantern(BaseLantern):
         self,
         highest_mode: str = "LP02",
         launch_mode: str | list[str] = "LP01",
-        taper_factor: float = 5,
+        taper_factor: float = 1,
         taper_length: float = 80000,
         core_diameters: dict[str, float] | None = None,
         savefile: bool = True,
@@ -170,6 +171,19 @@ class ModeSelectiveLantern(BaseLantern):
         # Configure taper properties
         self.configure_tapers(taper_config)
 
+        # Model the physical properties of the lantern
+        model = model_photonic_lantern_taper(
+            z_points=100,
+            taper_length=taper_length,
+            cladding_diameter=self.default_fiber_props["cladding_dia"],
+            final_capillary_id=40,
+            capillary_id=cap_dia,
+            capillary_od=900,
+            core_map=core_map,
+        )
+
+        endpoints_dict = extract_lp_mode_endpoints(model)
+
         # Add fiber segments using segment manager
         self.segment_manager.add_fiber_segment(
             self.bundle,
@@ -182,6 +196,8 @@ class ModeSelectiveLantern(BaseLantern):
             core_or_clad="cladding",
             taper_type=self.get_segment_taper_type(taper_config, "cladding"),
             monitor_type=monitor_type,
+            per_fiber_overrides=endpoints_dict,
+            # segment_prop_overrides=endpoints_dict,
         )
         self.segment_manager.add_capillary_segment(
             self.cap_dia,
@@ -267,7 +283,6 @@ if __name__ == "__main__":
         launch_mode="LP01",
         savefile=False,
         opt_name="prototype",
-        femsim=False,
     )
 
     print(mspl)
