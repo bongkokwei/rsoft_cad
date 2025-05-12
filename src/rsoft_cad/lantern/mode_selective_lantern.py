@@ -83,50 +83,58 @@ class ModeSelectiveLantern(BaseLantern):
         monitor_type: MonitorType = MonitorType.FIBER_POWER,
         taper_config: TaperType | dict[str, TaperType] = TaperType.linear(),
         launch_type: LaunchType = LaunchType.GAUSSIAN,
+        capillary_od: float = 900,
+        final_capillary_id: float = 40,
+        num_points: int = 100,
     ) -> dict[str, tuple[float, float]]:
         """
-        Create and configure a mode selective lantern.
+            Create and configure a mode selective lantern.
 
-        This method demonstrates the complete process of creating a mode selective lantern:
-        1. Creating a core map based on the highest supported mode
-        2. Updating the bundle with spatial coordinates
-        3. Fine-tuning core diameters for each supported mode
-        4. Setting the taper factor
-        5. Adding fiber segments (core and cladding)
-        6. Adding a capillary segment
-        7. Configuring the launch field
-        8. Setting simulation parameters
+            This method demonstrates the complete process of creating a mode selective lantern:
+            1. Creating a core map based on the highest supported mode
+            2. Updating the bundle with spatial coordinates
+            3. Fine-tuning core diameters for each supported mode
+            4. Setting the taper factor
+            5. Adding fiber segments (core and cladding)
+            6. Adding a capillary segment
+            7. Configuring the launch field
+            8. Setting simulation parameters
 
-        Args:
-            highest_mode (str): The highest LP mode to support (default: "LP02")
-            launch_mode (str | list[str]): The mode(s) to launch from (default: "LP01")
-            taper_factor (float): The factor by which the fibers are tapered (default: 5)
-            taper_length (float): The length of the taper in microns (default: 80000)
-            core_diameters (dict[str, float] | None): Dictionary mapping mode names to core diameters.
-                                          If None, default values will be used.
-                                          Example: {"LP01": 10.7, "LP11a": 9.6}
-            savefile (bool): Whether to save the design file (default: True)
-            femnev (int): Number of eigenmodes to find in FEM simulation (default: 1)
-            opt_name (int | str): Optional name identifier for the output file (default: 0)
-            sim_params (dict[str, any] | None): Dictionary of simulation parameters to override defaults.
-                                       Any parameter that can be passed to update_global_params.
-                                       Example: {
-                                         "grid_size": 0.5,
-                                         "boundary_max": 100,
-                                         "sim_tool": "ST_FEMSIM"
-                                       }
-            core_dia_dict (dict[str, float] | None): Dictionary to set core diameters for specific modes
-            cladding_dia_dict (dict[str, float] | None): Dictionary to set cladding diameters for specific modes
-            bg_index_dict (dict[str, float] | None): Dictionary to set background indices for specific modes
-            cladding_index_dict (dict[str, float] | None): Dictionary to set cladding indices for specific modes
-            core_index_dict (dict[str, float] | None): Dictionary to set core indices for specific modes
-            monitor_type: Type of monitor to add to each pathway. Defaults to FIBER_POWER.
-            taper_config: Taper profile to use if tapering is applied. Defaults to LINEAR.
-            launch_type: Type of field distribution to launch. Defaults to GAUSSIAN.
-
+            Args:
+                highest_mode (str): The highest LP mode to support (default: "LP02")
+                launch_mode (str | list[str]): The mode(s) to launch from (default: "LP01")
+                taper_factor (float): The factor by which the fibers are tapered (default: 5)
+                taper_length (float): The length of the taper in microns (default: 80000)
+                core_diameters (dict[str, float] | None): Dictionary mapping mode names to core diameters.
+                                              If None, default values will be used.
+                                              Example: {"LP01": 10.7, "LP11a": 9.6}
+                savefile (bool): Whether to save the design file (default: True)
+                femnev (int): Number of eigenmodes to find in FEM simulation (default: 1)
+                opt_name (int | str): Optional name identifier for the output file (default: 0)
+                sim_params (dict[str, any] | None): Dictionary of simulation parameters to override defaults.
+                                           Any parameter that can be passed to update_global_params.
+                                           Example: {
+                                             "grid_size": 0.5,
+                                             "boundary_max": 100,
+                                             "sim_tool": "ST_FEMSIM"
+                                           }
+                core_dia_dict (dict[str, float] | None): Dictionary to set core diameters for specific modes
+                cladding_dia_dict (dict[str, float] | None): Dictionary to set cladding diameters for specific modes
+                bg_index_dict (dict[str, float] | None): Dictionary to set background indices for specific modes
+                cladding_index_dict (dict[str, float] | None): Dictionary to set cladding indices for specific modes
+                core_index_dict (dict[str, float] | None): Dictionary to set core indices for specific modes
+                monitor_type: Type of monitor to add to each pathway. Defaults to FIBER_POWER.
+                taper_config: Taper profile to use if tapering is applied. Defaults to LINEAR.
+                launch_type: Type of field distribution to launch. Defaults to GAUSSIAN.
+                capillary_od (float): Outer diameter of the capillary in microns (default: 900)
+                final_capillary_id (float): Final inner diameter of the capillary after tapering in microns (default: 40)
+                num_points (int): Number of points along z-axis for model discretization (default: 100)
 
         Returns:
-            dict[str, tuple[float, float]]: The core map showing the spatial layout of supported modes
+
+
+            Returns:
+                dict[str, tuple[float, float]]: The core map showing the spatial layout of supported modes
         """
         # Create a core map for the specified highest mode
         core_map, cap_dia = create_core_map(highest_mode, self.cladding_dia)
@@ -141,7 +149,10 @@ class ModeSelectiveLantern(BaseLantern):
         # Use provided core diameters or set defaults
         if core_dia_dict is not None:
             self.fiber_config.set_core_dia(core_dia_dict)
-        else:
+            # Update core_diameters for the model to use the same values
+            core_diameters = core_dia_dict
+        elif core_diameters is None:
+            # Use defaults if nothing is provided
             core_diameters = {
                 "LP01": 10.7,  # Fundamental mode gets largest core
                 "LP11a": 9.6,  # First higher-order mode pair
@@ -172,20 +183,23 @@ class ModeSelectiveLantern(BaseLantern):
         self.configure_tapers(taper_config)
 
         # Model the physical properties of the lantern
-        model = model_photonic_lantern_taper(
-            z_points=100,
-            taper_length=taper_length,
+        # This creates a 3D model of the photonic lantern's physical structure
+        self.model = model_photonic_lantern_taper(
+            z_points=num_points,  # Number of points along z-axis for model discretization
+            taper_length=taper_length,  # Total length of the taper in microns
             cladding_diameter=self.default_fiber_props["cladding_dia"],
-            final_capillary_id=40,
-            capillary_id=cap_dia,
-            capillary_od=900,
-            core_map=core_map,
-            core_diameters=core_diameters,
+            final_capillary_id=final_capillary_id,  # Final inner diameter of capillary after tapering
+            capillary_id=cap_dia,  # Initial inner diameter of the capillary
+            capillary_od=capillary_od,  # Outer diameter of the capillary
+            core_map=core_map,  # Spatial layout of fiber cores
+            core_diameters=core_diameters,  # Diameters for each supported LP mode
         )
 
-        cladding_endpoints, core_endpoints, self.cap_endpoints = (
-            extract_lantern_endpoints(model)
-        )
+        (
+            cladding_endpoints,
+            core_endpoints,
+            cap_endpoints,
+        ) = extract_lantern_endpoints(self.model)
 
         # Add fiber segments using segment manager
         self.segment_manager.add_fiber_segment(
@@ -207,7 +221,7 @@ class ModeSelectiveLantern(BaseLantern):
             taper_factor,
             taper_length,
             taper_type=self.get_segment_taper_type(taper_config, "cap"),
-            segment_prop_overrides=self.cap_endpoints,
+            segment_prop_overrides=cap_endpoints,
             monitor_type=MonitorType.PARTIAL_POWER,
         )
 

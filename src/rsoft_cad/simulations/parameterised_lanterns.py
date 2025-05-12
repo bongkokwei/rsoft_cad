@@ -11,7 +11,7 @@ from rsoft_cad.lantern import ModeSelectiveLantern
 
 # from rsoft_cad.rsoft_mspl import ModeSelectiveLantern
 from rsoft_cad.rsoft_simulations import run_simulation
-from rsoft_cad.utils import visualise_lantern
+from rsoft_cad.utils import interpolate_taper_value
 from rsoft_cad.geometry import calculate_taper_properties
 from rsoft_cad import LaunchType, MonitorType, TaperType
 
@@ -30,7 +30,6 @@ def make_parameterised_lantern(
     domain_min: float = 0,
     data_dir: str = "output",
     expt_dir: str = "pl_property_scan",
-    num_grid: int = 400,
     mode_output: str = "OUTPUT_REAL_IMAG",
     core_dia_dict: dict[str, float] | None = None,
     cladding_dia_dict: dict[str, float] | None = None,
@@ -40,6 +39,10 @@ def make_parameterised_lantern(
     monitor_type: MonitorType = MonitorType.FIBER_POWER,
     launch_type: LaunchType = LaunchType.GAUSSIAN,
     taper_config: TaperType | dict[str, TaperType] = TaperType.linear(),
+    capillary_od: float = 900,
+    final_capillary_id: float = 40,
+    num_points: int = 100,
+    num_grid: int = 200,
 ) -> tuple[str, str, dict[str, tuple[float, float]]]:
     """
     Create a parameterised photonic lantern configuration with specified properties.
@@ -124,6 +127,9 @@ def make_parameterised_lantern(
         monitor_type=monitor_type,
         launch_type=launch_type,
         taper_config=taper_config,
+        capillary_od=capillary_od,
+        final_capillary_id=final_capillary_id,
+        num_points=num_points,
     )
     logger.debug(f"Lantern created with {len(core_map)} cores")
 
@@ -137,8 +143,11 @@ def make_parameterised_lantern(
             taper_length=taper_length,
         )
     else:
-        dia_at_pos = mspl.cap_endpoints["end.height"]
-
+        dia_at_pos = interpolate_taper_value(
+            mspl.model,
+            "capillary_inner_diameter",
+            z_pos=domain_min,
+        )
     core_pos_x = 0
     core_pos_y = 0
 
@@ -154,10 +163,10 @@ def make_parameterised_lantern(
     logger.debug(f"Grid sizes calculated: x={grid_size_x}, y={grid_size_y}")
 
     # some glitch in the software, lantern is not centered, have to pad it to prevent clipping
-    boundary_min_y -= 10 * grid_size_y
-    boundary_max_y += 10 * grid_size_y
-    boundary_min -= 10 * grid_size_x
-    boundary_max += 10 * grid_size_x
+    boundary_min_y -= 20 * grid_size_y
+    boundary_max_y += 30 * grid_size_y
+    boundary_min -= 20 * grid_size_x
+    boundary_max += 20 * grid_size_x
 
     # Simulation parameters
     sim_params = {
@@ -175,8 +184,8 @@ def make_parameterised_lantern(
         "slice_display_mode": "DISPLAY_CONTOURMAPXY",
         "field_output_format": "OUTPUT_REAL_IMAG",
         "mode_launch_type": 2,
-        "cad_aspectratio_x": 500,
-        "cad_aspectratio_y ": 500,
+        "cad_aspectratio_x": 50,
+        "cad_aspectratio_y ": 50,
         "fem_outh": 0,
         "fem_outs": 0,
         "fem_plot_mesh": 0,
@@ -241,11 +250,16 @@ if __name__ == "__main__":
         make_parameterised_lantern,
         highest_mode="LP02",
         launch_mode="LP01",
-        taper_factor=13.15,  # final diamter of 19 micron
+        taper_factor=1,  # final diamter of 19 micron
         sim_type="femsim",
         femnev=6,
-        taper_length=49400,
+        taper_length=50000,
         expt_dir="lantern_test",
+        taper_config={
+            "core": TaperType.exponential(),
+            "cladding": TaperType.exponential(),
+            "cap": TaperType.exponential(),
+        },
     )
 
-    lantern(domain_min=0, opt_name="test_run")
+    lantern(domain_min=25000, opt_name="test_run")

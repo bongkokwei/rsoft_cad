@@ -4,23 +4,28 @@ import pandas as pd
 import os
 import time
 import argparse
+from tqdm import tqdm  # Add this import for progress bar
 
 from rsoft_cad.rsoft_simulations import run_simulation
 from rsoft_cad.utils import get_next_run_folder
 from rsoft_cad.simulations import make_parameterised_lantern
+from rsoft_cad.geometry import sigmoid_taper_ratio
+from rsoft_cad import LaunchType, TaperType
 
 
 def femsim_tapered_lantern(
-    expt_dir="n_eff_scan_run_003",
-    taper_factor=11,
+    expt_dir="femsim_run_000",
+    data_dir="output",
+    taper_factor=1,
     taper_length=50000,
-    num_points=400,
+    file_name_dim="custom_taper.txt",
+    num_points=200,
     highest_mode="LP02",
     launch_mode="LP01",
     sim_type="femsim",
     femnev=12,
     start_pos=0,
-    num_grid=400,
+    num_grid=200,
     mode_output="OUTPUT_REAL_IMAG",
 ):
     """
@@ -59,16 +64,23 @@ def femsim_tapered_lantern(
         make_parameterised_lantern,
         highest_mode=highest_mode,
         launch_mode=launch_mode,
-        taper_factor=taper_factor,  # final diameter of 19 micron
         sim_type=sim_type,
         femnev=femnev,
         taper_length=taper_length,
+        taper_factor=taper_factor,  # set to one to use custom taper
+        data_dir=data_dir,
         expt_dir=expt_dir,
+        launch_type=LaunchType.GAUSSIAN,
+        taper_config={
+            "core": TaperType.user(1, file_name_dim),
+            "cladding": TaperType.user(1, file_name_dim),
+            "cap": TaperType.user(1, file_name_dim),
+        },
         num_grid=num_grid,
         mode_output=mode_output,
     )
 
-    for i, taper in enumerate(taper_scan_array):
+    for i, taper in enumerate(tqdm(taper_scan_array, desc="Running simulations")):
         filepath, filename, core_map = n_eff_expt(
             domain_min=taper,
             opt_name=f"run_{i:03d}",  # design file suffix
@@ -84,7 +96,10 @@ def femsim_tapered_lantern(
             hide_sim=True,
         )
 
-        print(f"Error message: {simulation_result.stdout} \n")
+        # if simulation_result.stdout is None:
+        #     print("No error")
+        # else:
+        #     print(f"Error message: {simulation_result.stdout} \n")
 
         # Add a new row
         x_value.loc[i, "filename"] = f"run_{i:03d}"
@@ -92,7 +107,7 @@ def femsim_tapered_lantern(
 
         # Save progress after each simulation
         x_value.to_csv(
-            os.path.join("output", expt_dir, "x_values.csv"),
+            os.path.join(data_dir, expt_dir, "x_values.csv"),
             index=False,
         )
 
@@ -107,8 +122,8 @@ def femsimulation():
         "--taper-factors",
         type=float,
         nargs="+",
-        default=[13],
-        help="List of taper factors to simulate (default: [13])",
+        default=[1],
+        help="List of taper factors to simulate (default: [1])",
     )
     parser.add_argument(
         "--taper-length",
@@ -119,8 +134,8 @@ def femsimulation():
     parser.add_argument(
         "--num-points",
         type=int,
-        default=400,
-        help="Number of simulation points along taper (default: 400)",
+        default=200,
+        help="Number of simulation points along taper (default: 200)",
     )
 
     parser.add_argument(
@@ -176,9 +191,22 @@ def femsimulation():
     )
 
     args = parser.parse_args()
+    expt_dir = get_next_run_folder("output", args.output_prefix)
+    file_name_dim = "custom_profile_dim.txt"
+    save_to = os.path.join("output", expt_dir, "rsoft_data_files")
+    os.makedirs(save_to, exist_ok=True)
+
+    z = np.linspace(0, 1, args.num_points)
+    taper_ratios = sigmoid_taper_ratio(z, taper_length=1)
+    np.savetxt(
+        os.path.join(save_to, file_name_dim),
+        np.column_stack((z, taper_ratios)),
+        delimiter="\t",
+        header=f"/rn,a,b /nx0 {args.num_points} 0 1 1 OUTPUT_REAL\n ",
+        comments="",
+    )
 
     for i, taper_factor in enumerate(args.taper_factors):
-        expt_dir = get_next_run_folder("output", args.output_prefix)
         femsim_tapered_lantern(
             expt_dir=expt_dir,
             taper_factor=taper_factor,
@@ -191,6 +219,7 @@ def femsimulation():
             start_pos=args.start_pos,
             num_grid=args.num_grids,
             mode_output=args.mode_output,
+            file_name_dim=file_name_dim,
         )
 
 
