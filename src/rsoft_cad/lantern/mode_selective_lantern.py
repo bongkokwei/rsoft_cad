@@ -39,6 +39,67 @@ class ModeSelectiveLantern(BaseLantern):
         self.fiber_config = FiberConfigurator(self.bundle)
         self.segment_manager = SegmentManager(self)
 
+    def configure_tapers(self, taper_type, custom_taper_filename):
+        """
+        Configure taper types and add custom taper profiles when needed.
+
+        Args:
+            taper_type (TaperType | dict[str, TaperType]): Either a single taper type for all segments
+                or a dictionary mapping segment names to their taper types.
+            custom_taper_filename (str | list[str]): Either a single filename for a custom taper profile
+                or a list of filenames corresponding to each non-linear taper type in the taper_type dictionary.
+
+        Raises:
+            ValueError: If taper_type is a dictionary but custom_taper_filename is not a list,
+                       or if the lengths of taper_type and custom_taper_filename don't match.
+        """
+        # Check if taper_type is a dictionary (different taper types for different segments)
+        if isinstance(taper_type, dict):
+            # If taper_type is a dictionary, custom_taper_filename must be a list
+            # to provide matching filenames for each non-linear taper type
+            if not isinstance(custom_taper_filename, list):
+                raise ValueError(
+                    "custom_taper_filename must be a list when taper_type is a dictionary"
+                )
+
+            # Each non-linear taper needs its own filename, so lists must match in length
+            if len(taper_type) != len(custom_taper_filename):
+                raise ValueError(
+                    "taper_type dictionary and custom_taper_filename list must have the same length"
+                )
+
+            # Iterate through the taper dictionary items and filenames together
+            # Each segment (key) has its own taper type and corresponding filename
+            for (key, taper), filename in zip(
+                taper_type.items(),  # Returns (key, value) pairs from dictionary
+                custom_taper_filename,
+            ):
+                # Only add user taper for user-defined taper types
+                if "USER" in str(taper):
+                    # Add custom taper profile from the file for this segment
+                    self.add_user_taper(filename=filename)
+        # If taper_type is not a dictionary but a single user-defined taper type
+        elif "USER" in str(taper_type):
+            # Add a single custom taper profile for all segments
+            self.add_user_taper(filename=custom_taper_filename)
+
+    def get_segment_taper_type(self, taper_type, segment_key):
+        """
+        Extract the appropriate taper type for a specific segment.
+
+        Args:
+            taper_type: Either a single taper type for all segments or a dictionary of segment-specific types
+            segment_key: The segment name to look up in the dictionary
+
+        Returns:
+            The appropriate taper type for the segment
+        """
+        if isinstance(taper_type, dict):
+            return taper_type.get(
+                segment_key, TaperType.LINEAR
+            )  # Default to LINEAR if not found
+        return taper_type
+
     def create_lantern(
         self,
         highest_mode: str = "LP02",
@@ -148,62 +209,26 @@ class ModeSelectiveLantern(BaseLantern):
         self.set_taper_factor(taper_factor)
         self.set_taper_length(taper_length)
 
-        # Check if taper_type is a dictionary (different taper types for different segments)
-        if isinstance(taper_type, dict):
-            # If taper_type is a dictionary, custom_taper_filename must be a list
-            # to provide matching filenames for each non-linear taper type
-            if not isinstance(custom_taper_filename, list):
-                raise ValueError(
-                    "custom_taper_filename must be a list when taper_type is a dictionary"
-                )
-
-            # Each non-linear taper needs its own filename, so lists must match in length
-            if len(taper_type) != len(custom_taper_filename):
-                raise ValueError(
-                    "taper_type dictionary and custom_taper_filename list must have the same length"
-                )
-
-            # Iterate through the taper dictionary items and filenames together
-            # Each segment (key) has its own taper type and corresponding filename
-            for (key, taper), filename in zip(
-                taper_type.items(),  # Returns (key, value) pairs from dictionary
-                custom_taper_filename,
-            ):
-                # Only add user taper for non-linear taper types
-                if taper != TaperType.LINEAR:
-                    # Add custom taper profile from the file for this segment
-                    self.add_user_taper(filename=filename)
-        # If taper_type is not a dictionary but a single non-linear taper type
-        elif taper_type != TaperType.LINEAR:
-            # Add a single custom taper profile for all segments
-            self.add_user_taper(filename=custom_taper_filename)
+        self.configure_tapers(taper_type, custom_taper_filename)
 
         # Add fiber segments using segment manager
         self.segment_manager.add_fiber_segment(
             self.bundle,
             core_or_clad="core",
-            taper_type=(
-                taper_type if not isinstance(taper_type, dict) else taper_type["fiber"]
-            ),
+            taper_type=self.get_segment_taper_type(taper_type, "core"),
             monitor_type=monitor_type,
         )
         self.segment_manager.add_fiber_segment(
             self.bundle,
             core_or_clad="cladding",
-            taper_type=(
-                taper_type
-                if not isinstance(taper_type, dict)
-                else taper_type["cladding"]
-            ),
+            taper_type=self.get_segment_taper_type(taper_type, "cladding"),
             monitor_type=monitor_type,
         )
         self.segment_manager.add_capillary_segment(
             self.cap_dia,
             taper_factor,
             taper_length,
-            taper_type=(
-                taper_type if not isinstance(taper_type, dict) else taper_type["cap"]
-            ),
+            taper_type=self.get_segment_taper_type(taper_type, "cap"),
         )
 
         # Configure the launch field
