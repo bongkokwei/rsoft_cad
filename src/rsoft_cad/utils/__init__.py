@@ -40,6 +40,7 @@ from .mode_utils import (
     get_modes_below_cutoff,
     group_modes_by_radial_number,
     find_segment_by_comp_name,
+    interpolate_taper_value,
 )
 
 # Version information

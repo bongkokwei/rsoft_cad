@@ -2,6 +2,9 @@
 Utility functions for working with optical modes in the RSoft CAD package.
 """
 
+import numpy as np
+from scipy.interpolate import interp1d
+
 
 def get_modes_below_cutoff(input_mode, lp_mode_cutoffs_freq):
     """
@@ -86,3 +89,69 @@ def find_segment_by_comp_name(segments, comp_name):
 
     # Raise an exception if component is not found
     raise ValueError(f"Component '{comp_name}' not found in any segment")
+
+
+def interpolate_taper_value(model, key, z_pos, mode_name=None):
+    """
+    Interpolate a value from the taper model at a specific z-position.
+
+    Parameters:
+    -----------
+    model : dict
+        The taper model dictionary containing the data
+    key : str
+        The key in the model dictionary to interpolate.
+        Must be one of: "fiber_diameters", "core_diameters", "fiber_positions",
+        "capillary_inner_diameter", "capillary_outer_diameter",
+        "mode_positions", or "mode_core_diameters"
+    z_pos : float
+        The z-position at which to interpolate
+    mode_name : str, optional
+        For mode-related keys ("mode_positions", "mode_core_diameters"),
+        the LP mode name to interpolate. Required for these keys.
+
+    Returns:
+    --------
+    float
+        The interpolated value at the specified z-position
+    """
+    # Define valid keys
+    standard_keys = [
+        "fiber_diameters",
+        "core_diameters",
+        "fiber_positions",
+        "capillary_inner_diameter",
+        "capillary_outer_diameter",
+    ]
+    mode_keys = ["mode_positions", "mode_core_diameters"]
+
+    # Validate key
+    if key not in standard_keys and key not in mode_keys:
+        raise ValueError(
+            f"Invalid key: '{key}'. Valid keys are: {standard_keys + mode_keys}"
+        )
+
+    # Get the z-positions array
+    z = model["z"]
+
+    # Check if z_pos is within the bounds of the z array
+    if z_pos < np.min(z) or z_pos > np.max(z):
+        raise ValueError(
+            f"z_pos {z_pos} is outside the range of the model ({np.min(z)} to {np.max(z)})"
+        )
+
+    # Handle standard arrays
+    if key in standard_keys:
+        f = interp1d(z, model[key])
+        return float(f(z_pos))
+
+    # Handle mode-specific data
+    elif key in mode_keys:
+        if mode_name is None:
+            raise ValueError(f"Mode name must be provided for key '{key}'")
+
+        if mode_name not in model["lp_modes"]:
+            raise ValueError(f"Mode name '{mode_name}' is not in the list of LP modes")
+
+        f = interp1d(z, model[key][mode_name])
+        return float(f(z_pos))
