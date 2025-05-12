@@ -7,5 +7,5 @@ from .custom_taper import (
     sigmoid_taper_ratio,
     plot_combined_taper,
     model_photonic_lantern_taper,
-    extract_lp_mode_endpoints,
+    extract_lantern_endpoints,
 )

@@ -10,7 +10,7 @@ from rsoft_cad.lantern.fiber_config import FiberConfigurator
 from rsoft_cad.lantern.segment_manager import SegmentManager
 from rsoft_cad.utils import visualise_lp_lantern
 from rsoft_cad.layout import create_core_map
-from rsoft_cad.geometry import model_photonic_lantern_taper, extract_lp_mode_endpoints
+from rsoft_cad.geometry import model_photonic_lantern_taper, extract_lantern_endpoints
 from rsoft_cad import LaunchType, MonitorType, TaperType
 
 
@@ -180,9 +180,12 @@ class ModeSelectiveLantern(BaseLantern):
             capillary_id=cap_dia,
             capillary_od=900,
             core_map=core_map,
+            core_diameters=core_diameters,
         )
 
-        endpoints_dict = extract_lp_mode_endpoints(model)
+        cladding_endpoints, core_endpoints, self.cap_endpoints = (
+            extract_lantern_endpoints(model)
+        )
 
         # Add fiber segments using segment manager
         self.segment_manager.add_fiber_segment(
@@ -190,20 +193,21 @@ class ModeSelectiveLantern(BaseLantern):
             core_or_clad="core",
             taper_type=self.get_segment_taper_type(taper_config, "core"),
             monitor_type=monitor_type,
+            per_fiber_overrides=core_endpoints,
         )
         self.segment_manager.add_fiber_segment(
             self.bundle,
             core_or_clad="cladding",
             taper_type=self.get_segment_taper_type(taper_config, "cladding"),
             monitor_type=monitor_type,
-            per_fiber_overrides=endpoints_dict,
-            # segment_prop_overrides=endpoints_dict,
+            per_fiber_overrides=cladding_endpoints,
         )
         self.segment_manager.add_capillary_segment(
             self.cap_dia,
             taper_factor,
             taper_length,
             taper_type=self.get_segment_taper_type(taper_config, "cap"),
+            segment_prop_overrides=self.cap_endpoints,
         )
 
         # Configure the launch field

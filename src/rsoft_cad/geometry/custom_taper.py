@@ -78,13 +78,15 @@ def model_photonic_lantern_taper(
     capillary_od=900,
     layers_config=[(3, 1.0)],
     core_map=None,  # New parameter for LP mode mapping
+    core_diameters=None,  # New parameter for core diameters
 ):
     """
-    Models a photonic lantern taper with support for LP mode mapping.
+    Models a photonic lantern taper with support for LP mode mapping and core diameters.
 
     This function extends model_photonic_lantern_taper by adding support for mapping
-    LP modes to fiber positions through the core_map parameter. It renames parameters
-    for clarity and calculates final_cladding_diameter from final_capillary_id if not provided.
+    LP modes to fiber positions through the core_map parameter and tracking core diameters
+    along the taper. It renames parameters for clarity and calculates final_cladding_diameter
+    from final_capillary_id if not provided.
 
     Parameters:
     -----------
@@ -107,18 +109,24 @@ def model_photonic_lantern_taper(
     core_map : dict, optional
         Mapping of LP mode names to initial fiber positions. If provided, overrides layers_config.
         Example: {"LP01": (0, 0), "LP11a": (100, 0), "LP11b": (0, 100)}
+    core_diameters : dict, optional
+        Dictionary mapping LP mode names to their initial core diameters in μm.
+        Example: {"LP01": 10.7, "LP11a": 9.6, "LP11b": 9.6}
+        If not provided, all cores default to 80% of the cladding diameter.
 
     Returns:
     --------
     dict
         A dictionary containing the taper model data with the following keys:
         - "z": z-positions along the taper
-        - "fiber_diameters": Array of fiber diameters at each z-position
+        - "fiber_diameters": Array of fiber (cladding) diameters at each z-position
+        - "core_diameters": Array of core diameters at each z-position
         - "fiber_positions": Array of fiber positions at each z-position
         - "capillary_inner_diameter": Inner diameter of the capillary at each z-position
         - "capillary_outer_diameter": Outer diameter of the capillary at each z-position
         - "lp_modes": List of LP mode names
         - "mode_positions": Dictionary mapping LP mode names to their positions along z
+        - "mode_core_diameters": Dictionary mapping LP mode names to their core diameters along z
     """
     z = np.linspace(0, taper_length, z_points)
     taper_ratio = sigmoid_taper_ratio(z, taper_length)
@@ -160,23 +168,53 @@ def model_photonic_lantern_taper(
         + (capillary_inner / capillary_id) * capillary_od * taper_ratio
     )
 
-    # Create arrays for fiber diameters and positions
+    # Create arrays for fiber diameters, core diameters, and positions
     fiber_diameters = np.zeros((z_points, num_fibers))
     fiber_positions = np.zeros((z_points, num_fibers, 2))
+    core_diameters_array = np.zeros((z_points, num_fibers))
 
-    # Calculate fiber diameters and positions along the taper
+    # Set default core diameters if not provided or for missing modes
+    if core_diameters is None:
+        core_diameters = {}
+
+    # Default core diameter is 80% of cladding diameter
+    default_core_ratio = 0.8
+
+    # Calculate fiber diameters, core diameters, and positions along the taper
     for i in range(z_points):
         current_taper = taper_ratio[i]
         current_capillary_inner = capillary_inner[i]
 
-        fiber_diameter = (
+        # Calculate current cladding diameter for all fibers
+        current_cladding_diameter = (
             cladding_diameter * (1 - current_taper)
             + final_cladding_diameter * current_taper
         )
-        fiber_diameters[i, :] = fiber_diameter
+        fiber_diameters[i, :] = current_cladding_diameter
 
+        # Calculate core diameters - scale with the same taper ratio
+        for j, mode in enumerate(lp_modes):
+            # Get initial core diameter for this mode, default to 80% of cladding if not specified
+            initial_core_diam = core_diameters.get(
+                mode, cladding_diameter * default_core_ratio
+            )
+
+            # Calculate final core diameter maintaining the same core-to-cladding ratio
+            core_to_cladding_ratio = initial_core_diam / cladding_diameter
+            final_core_diam = final_cladding_diameter * core_to_cladding_ratio
+
+            # Interpolate between initial and final core diameters using taper ratio
+            current_core_diam = (
+                initial_core_diam * (1 - current_taper)
+                + final_core_diam * current_taper
+            )
+            core_diameters_array[i, j] = current_core_diam
+
+        # Calculate fiber positions
         initial_available_radius = capillary_id / 2 - cladding_diameter / 2
-        current_available_radius = current_capillary_inner / 2 - fiber_diameter / 2
+        current_available_radius = (
+            current_capillary_inner / 2 - current_cladding_diameter / 2
+        )
 
         if initial_available_radius > 0:
             scale_factor = current_available_radius / initial_available_radius
@@ -187,54 +225,76 @@ def model_photonic_lantern_taper(
     # Create a mode map for positions over z
     mode_positions = {lp_modes[i]: fiber_positions[:, i, :] for i in range(num_fibers)}
 
+    # Create a mode map for core diameters over z
+    mode_core_diameters = {
+        lp_modes[i]: core_diameters_array[:, i] for i in range(num_fibers)
+    }
+
     # Return the model data
     return {
         "z": z,
         "fiber_diameters": fiber_diameters,
+        "core_diameters": core_diameters_array,
         "fiber_positions": fiber_positions,
         "capillary_inner_diameter": capillary_inner,
         "capillary_outer_diameter": capillary_outer,
         "lp_modes": lp_modes,
         "mode_positions": mode_positions,
+        "mode_core_diameters": mode_core_diameters,
     }
 
 
-def extract_lp_mode_endpoints(model_output):
+def extract_lantern_endpoints(model_output):
     """
-    Extract endpoint information for each LP mode from the photonic lantern taper model output.
+    Extract endpoint information for the photonic lantern taper model, including
+    cladding, core, and capillary dimensions.
 
     Parameters:
     -----------
     model_output : dict
-        The dictionary returned by model_photonic_lantern_taper_with_modes function
+        The dictionary returned by model_photonic_lantern_taper function
 
     Returns:
     --------
-    dict
-        A dictionary with LP modes as keys, each containing endpoint information:
+    tuple
+        A tuple of three dictionaries (cladding_endpoints, core_endpoints, cap_endpoints):
+        - cladding_endpoints and core_endpoints contain LP mode information
+        - cap_endpoints contains capillary information with just width and height
+
+        Format:
         {
             "LP01": {
                 "end.x": x_position,
                 "end.y": y_position,
                 "end.z": z_position,
                 "end.height": diameter,
-                "end.width": diameter,
+                "end.width": diameter
             },
             ...
+        }
+
+        cap_endpoints format:
+        {
+            "end.z": z_position,
+            "end.height": inner_diameter,
+            "end.width": inner_diameter
         }
     """
     # Extract required data from the model output
     z = model_output["z"]
-    fiber_diameters = model_output["fiber_diameters"]
+    fiber_diameters = model_output["fiber_diameters"]  # Cladding diameters
     lp_modes = model_output["lp_modes"]
     mode_positions = model_output["mode_positions"]
+    mode_core_diameters = model_output["mode_core_diameters"]
+    capillary_inner_diameter = model_output["capillary_inner_diameter"]
 
     # Get index of the end of the taper
     end_idx = len(z) - 1
     end_z = z[end_idx]
 
-    # Initialize the result dictionary
-    lp_mode_endpoints = {}
+    # Initialize the result dictionaries
+    cladding_endpoints = {}
+    core_endpoints = {}
 
     # For each LP mode, extract the endpoint information
     for i, mode in enumerate(lp_modes):
@@ -248,19 +308,43 @@ def extract_lp_mode_endpoints(model_output):
             end_x = model_output["fiber_positions"][end_idx, i, 0]
             end_y = model_output["fiber_positions"][end_idx, i, 1]
 
-        # Get the final diameter
-        end_diameter = fiber_diameters[end_idx, i]
+        # Get the final cladding diameter
+        end_cladding_diameter = fiber_diameters[end_idx, i]
 
-        # Create the entry for this mode
-        lp_mode_endpoints[mode] = {
+        # Get the final core diameter from the new mode_core_diameters dictionary
+        if mode in mode_core_diameters:
+            end_core_diameter = mode_core_diameters[mode][end_idx]
+        else:
+            # Use the core_diameters array as fallback if the dictionary access fails
+            end_core_diameter = model_output["core_diameters"][end_idx, i]
+
+        # Create the cladding entry for this mode
+        cladding_endpoints[mode] = {
             "end.x": float(end_x),
             "end.y": float(end_y),
             "end.z": float(end_z),
-            "end.height": float(end_diameter),
-            "end.width": float(end_diameter),
+            "end.height": float(end_cladding_diameter),
+            "end.width": float(end_cladding_diameter),
         }
 
-    return lp_mode_endpoints
+        # Create the core entry for this mode
+        core_endpoints[mode] = {
+            "end.x": float(end_x),
+            "end.y": float(end_y),
+            "end.z": float(end_z),
+            "end.height": float(end_core_diameter),
+            "end.width": float(end_core_diameter),
+        }
+
+    # Create the capillary endpoints dictionary
+    # Since the capillary is centered by definition, we only need height and width
+    cap_endpoints = {
+        "end.z": float(end_z),
+        "end.height": float(capillary_inner_diameter[end_idx]),
+        "end.width": float(capillary_inner_diameter[end_idx]),
+    }
+
+    return cladding_endpoints, core_endpoints, cap_endpoints
 
 
 def plot_taper_cross_sections(model, ax_row, num_sections=6):

@@ -128,13 +128,14 @@ def make_parameterised_lantern(
     logger.debug(f"Lantern created with {len(core_map)} cores")
 
     # Calculate simulation boundaries based on capillary diameter
-    (dia_at_pos, _, taper_factor, _) = calculate_taper_properties(
-        position=domain_min,
-        start_dia=mspl.cap_dia,
-        end_dia=None,
-        taper_factor=taper_factor,
-        taper_length=taper_length,
-    )
+    # (dia_at_pos, _, taper_factor, _) = calculate_taper_properties(
+    #     position=domain_min,
+    #     start_dia=mspl.cap_dia,
+    #     end_dia=None,
+    #     taper_factor=taper_factor,
+    #     taper_length=taper_length,
+    # )
+    dia_at_pos = mspl.cap_endpoints["end.height"]
 
     core_pos_x = 0
     core_pos_y = 0
