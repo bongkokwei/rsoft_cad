@@ -184,13 +184,13 @@ class SegmentManager:
         if segment_prop_overrides:
             segment_prop.update(segment_prop_overrides)
 
-        if taper_factor > 1:
-            segment_prop.update(
-                width_taper=taper_type,
-                height_taper=taper_type,
-                position_y_taper=taper_type,
-                position_taper=taper_type,
-            )
+        segment_prop.update(
+            width_taper=taper_type,
+            height_taper=taper_type,
+            position_y_taper=taper_type,
+            position_taper=taper_type,
+        )
+
         self.circuit.add_segment(**segment_prop)
 
         # Add pathway with this segment
