@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 from matplotlib import gridspec
 
 from rsoft_cad.layout import multilayer_lantern_layout
-from rsoft_cad.utils import lantern_layout
 
 
 def sigmoid(x, center, width, amplitude=1):
@@ -72,20 +71,87 @@ def sigmoid_taper_ratio(
 def model_photonic_lantern_taper(
     z_points=100,
     taper_length=21.5,
-    initial_diameter=125,
-    final_core_diameter=32,
+    cladding_diameter=125,  # Renamed from initial_diameter
+    final_cladding_diameter=None,  # Renamed from final_core_diameter and made optional
+    final_capillary_id=150,  # Required parameter for specifying final structure
     capillary_id=275,
     capillary_od=900,
     layers_config=[(3, 1.0)],
+    core_map=None,  # New parameter for LP mode mapping
 ):
+    """
+    Models a photonic lantern taper with support for LP mode mapping.
+
+    This function extends model_photonic_lantern_taper by adding support for mapping
+    LP modes to fiber positions through the core_map parameter. It renames parameters
+    for clarity and calculates final_cladding_diameter from final_capillary_id if not provided.
+
+    Parameters:
+    -----------
+    z_points : int, optional
+        Number of points along the z-axis. Default is 100.
+    taper_length : float, optional
+        Length of the taper in mm. Default is 21.5.
+    cladding_diameter : float, optional
+        Initial diameter of the fiber cladding in μm. Default is 125.
+    final_cladding_diameter : float, optional
+        Final diameter of the fiber claddings in μm. If None, calculated from final_capillary_id.
+    final_capillary_id : float, optional
+        Final inner diameter of the capillary in μm. Default is 150.
+    capillary_id : float, optional
+        Initial inner diameter of the capillary in μm. Default is 275.
+    capillary_od : float, optional
+        Outer diameter of the capillary in μm. Default is 900.
+    layers_config : list of tuples, optional
+        Configuration for fiber layers if core_map is not provided. Default is [(3, 1.0)].
+    core_map : dict, optional
+        Mapping of LP mode names to initial fiber positions. If provided, overrides layers_config.
+        Example: {"LP01": (0, 0), "LP11a": (100, 0), "LP11b": (0, 100)}
+
+    Returns:
+    --------
+    dict
+        A dictionary containing the taper model data with the following keys:
+        - "z": z-positions along the taper
+        - "fiber_diameters": Array of fiber diameters at each z-position
+        - "fiber_positions": Array of fiber positions at each z-position
+        - "capillary_inner_diameter": Inner diameter of the capillary at each z-position
+        - "capillary_outer_diameter": Outer diameter of the capillary at each z-position
+        - "lp_modes": List of LP mode names
+        - "mode_positions": Dictionary mapping LP mode names to their positions along z
+    """
     z = np.linspace(0, taper_length, z_points)
     taper_ratio = sigmoid_taper_ratio(z, taper_length)
-    num_fibers = sum(n for n, _ in layers_config)
-    final_capillary_id = (
-        final_core_diameter * (1 + 2 / np.sqrt(num_fibers))
-        if num_fibers > 1
-        else final_core_diameter * 3
-    )
+
+    # Determine number of fibers and initial positions
+    if core_map is not None:
+        num_fibers = len(core_map)
+        # Extract positions from core_map and create initial_positions array
+        lp_modes = list(core_map.keys())
+        initial_positions = np.array([core_map[mode] for mode in lp_modes])
+    else:
+        # Fall back to using layers_config if no core_map is provided
+        num_fibers = sum(n for n, _ in layers_config)
+        initial_fiber_centres_layers, _ = multilayer_lantern_layout(
+            cladding_diameter, layers_config
+        )
+        initial_positions = np.concatenate(
+            [np.array(layer) for layer in initial_fiber_centres_layers]
+        )
+        lp_modes = [f"Fiber_{i+1}" for i in range(num_fibers)]
+
+    # Calculate final_cladding_diameter if not provided
+    if final_cladding_diameter is None:
+        # Calculate an appropriate final_cladding_diameter based on final_capillary_id
+        # This ensures the fibers fit well in the final capillary
+        if num_fibers > 1:
+            # Consider packing density for multiple fibers
+            final_cladding_diameter = final_capillary_id / (1 + 2 / np.sqrt(num_fibers))
+        else:
+            # For a single fiber, use a conservative ratio
+            final_cladding_diameter = final_capillary_id / 3
+
+    # Calculate capillary dimensions along the taper
     capillary_inner = (
         capillary_id * (1 - taper_ratio) + final_capillary_id * taper_ratio
     )
@@ -93,36 +159,43 @@ def model_photonic_lantern_taper(
         capillary_od * (1 - taper_ratio)
         + (capillary_inner / capillary_id) * capillary_od * taper_ratio
     )
-    initial_fiber_centres_layers, _ = multilayer_lantern_layout(
-        initial_diameter, layers_config
-    )
-    initial_positions = np.concatenate(
-        [np.array(layer) for layer in initial_fiber_centres_layers]
-    )
+
+    # Create arrays for fiber diameters and positions
     fiber_diameters = np.zeros((z_points, num_fibers))
     fiber_positions = np.zeros((z_points, num_fibers, 2))
 
+    # Calculate fiber diameters and positions along the taper
     for i in range(z_points):
         current_taper = taper_ratio[i]
         current_capillary_inner = capillary_inner[i]
+
         fiber_diameter = (
-            initial_diameter * (1 - current_taper) + final_core_diameter * current_taper
+            cladding_diameter * (1 - current_taper)
+            + final_cladding_diameter * current_taper
         )
         fiber_diameters[i, :] = fiber_diameter
-        initial_available_radius = capillary_id / 2 - initial_diameter / 2
+
+        initial_available_radius = capillary_id / 2 - cladding_diameter / 2
         current_available_radius = current_capillary_inner / 2 - fiber_diameter / 2
+
         if initial_available_radius > 0:
             scale_factor = current_available_radius / initial_available_radius
             fiber_positions[i, :, :] = initial_positions * scale_factor
         else:
             fiber_positions[i, :, :] = np.zeros_like(initial_positions)
 
+    # Create a mode map for positions over z
+    mode_positions = {lp_modes[i]: fiber_positions[:, i, :] for i in range(num_fibers)}
+
+    # Return the model data
     return {
         "z": z,
         "fiber_diameters": fiber_diameters,
         "fiber_positions": fiber_positions,
         "capillary_inner_diameter": capillary_inner,
         "capillary_outer_diameter": capillary_outer,
+        "lp_modes": lp_modes,
+        "mode_positions": mode_positions,
     }
 
 

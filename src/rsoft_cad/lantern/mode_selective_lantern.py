@@ -138,7 +138,6 @@ class ModeSelectiveLantern(BaseLantern):
         self.num_cores = len(self.bundle)
 
         # Use provided core diameters or set defaults
-
         if core_dia_dict is not None:
             self.fiber_config.set_core_dia(core_dia_dict)
         else:
@@ -168,6 +167,7 @@ class ModeSelectiveLantern(BaseLantern):
         self.set_taper_factor(taper_factor)
         self.set_taper_length(taper_length)
 
+        # Configure taper properties
         self.configure_tapers(taper_config)
 
         # Add fiber segments using segment manager
