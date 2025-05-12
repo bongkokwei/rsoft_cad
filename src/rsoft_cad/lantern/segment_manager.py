@@ -107,13 +107,13 @@ class SegmentManager:
             if per_fiber_overrides and lp_mode in per_fiber_overrides:
                 segment_prop.update(per_fiber_overrides[lp_mode])
 
-            if fiber_prop["taper_factor"] > 1:
-                segment_prop.update(
-                    width_taper=taper_type,
-                    height_taper=taper_type,
-                    position_y_taper=taper_type,
-                    position_taper=taper_type,
-                )
+            segment_prop.update(
+                width_taper=taper_type,
+                height_taper=taper_type,
+                position_y_taper=taper_type,
+                position_taper=taper_type,
+            )
+
             self.circuit.add_segment(**segment_prop)
             if core_or_clad == "core":
                 # Add pathway with this segment
