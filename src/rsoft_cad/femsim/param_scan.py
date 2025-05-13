@@ -165,20 +165,16 @@ def femsim_tapered_lantern(
 
 def femsimulation():
     """Parse command line arguments and run lantern simulations."""
-    # Set up logging
-    logger = configure_logging(log_file="simulation.log", log_level=logging.INFO)
-    logger.info("Starting femsimulation script")
 
     parser = argparse.ArgumentParser(
         description="Run lantern simulations to analyse effective refractive index."
     )
 
     parser.add_argument(
-        "--taper-factors",
+        "--taper-factor",
         type=float,
-        nargs="+",
-        default=[1],
-        help="List of taper factors to simulate (default: [1])",
+        default=1,
+        help="Taper factor (default: [1])",
     )
     parser.add_argument(
         "--taper-length",
@@ -250,9 +246,10 @@ def femsimulation():
     # Add new argument for final capillary ID
     parser.add_argument(
         "--final-capillary-id",
-        type=int,
-        default=25,
-        help="Final capillary ID for the structure (default: 25)",
+        type=float,
+        nargs="+",
+        default=[25.0],
+        help="List of taper factors to simulate (default: [25.0])",
     )
     # Add new argument for log level
     parser.add_argument(
@@ -265,6 +262,14 @@ def femsimulation():
 
     args = parser.parse_args()
 
+    expt_dir = get_next_run_folder(args.data_dir, args.output_prefix)
+    logger.info(f"Created experiment directory: {expt_dir}")
+
+    # Set up logging
+    log_path = os.path.join(args.data_dir, expt_dir, "simulation.log")
+    logger = configure_logging(log_file=log_path, log_level=logging.INFO)
+    logger.info("Starting femsimulation script")
+
     # Update logging level if specified
     if args.log_level:
         level = getattr(logging, args.log_level)
@@ -274,9 +279,6 @@ def femsimulation():
         logger.info(f"Set logging level to {args.log_level}")
 
     logger.info(f"Parsed arguments: {vars(args)}")
-
-    expt_dir = get_next_run_folder("output", args.output_prefix)
-    logger.info(f"Created experiment directory: {expt_dir}")
 
     # Custom taper profile name
     file_name_dim = "custom_profile_dim.txt"
@@ -309,14 +311,14 @@ def femsimulation():
     )
     logger.debug(f"Saved taper profile to {profile_path_2}")
 
-    for i, taper_factor in enumerate(args.taper_factors):
+    for i, cap_id in enumerate(args.final_capillary_id):
         logger.info(
-            f"Starting simulation for taper factor {taper_factor} ({i+1}/{len(args.taper_factors)})"
+            f"Starting simulation for taper factor {cap_id} ({i+1}/{len(args.final_capillary_id)})"
         )
         try:
             femsim_tapered_lantern(
                 expt_dir=expt_dir,
-                taper_factor=taper_factor,
+                taper_factor=args.taper_factor,
                 taper_length=args.taper_length,
                 num_points=args.num_points,
                 highest_mode=args.highest_mode,
@@ -331,10 +333,10 @@ def femsimulation():
                 final_capillary_id=args.final_capillary_id,
                 logger=logger,
             )
-            logger.info(f"Completed simulation for taper factor {taper_factor}")
+            logger.info(f"Completed simulation for capillary id {cap_id}")
         except Exception as e:
             logger.exception(
-                f"Error during simulation with taper factor {taper_factor}: {str(e)}"
+                f"Error during simulation with capillary id {cap_id}: {str(e)}"
             )
 
     logger.info("All simulations completed")
