@@ -43,6 +43,8 @@ def make_parameterised_lantern(
     final_capillary_id: float = 40,
     num_points: int = 100,
     num_grid: int = 200,
+    num_pads: int = 20,
+    sort_neff: int = 1,  # [0=none, 1=highest, 2=lowest]
 ) -> tuple[str, str, dict[str, tuple[float, float]]]:
     """
     Create a parameterised photonic lantern configuration with specified properties.
@@ -163,10 +165,10 @@ def make_parameterised_lantern(
     logger.debug(f"Grid sizes calculated: x={grid_size_x}, y={grid_size_y}")
 
     # some glitch in the software, lantern is not centered, have to pad it to prevent clipping
-    boundary_min_y -= 20 * grid_size_y
-    boundary_max_y += 30 * grid_size_y
-    boundary_min -= 20 * grid_size_x
-    boundary_max += 20 * grid_size_x
+    boundary_min_y -= (num_pads + 10) * grid_size_y
+    boundary_max_y += num_pads * grid_size_y
+    boundary_min -= num_pads * grid_size_x
+    boundary_max += num_pads * grid_size_x
 
     # Simulation parameters
     sim_params = {
@@ -177,6 +179,8 @@ def make_parameterised_lantern(
         "domain_min": domain_min,
         "grid_size": grid_size_x,
         "grid_size_y": grid_size_y,
+        "grid_align_x": 1,
+        "grid_align_y": 1,
         "sim_tool": sim_string,
         "fem_nev": femnev,  # Find more eigenmodes
         "fem_neff_seeding": int(save_neff),
@@ -192,6 +196,7 @@ def make_parameterised_lantern(
         "fem_save_meshfile": 0,
         "fem_leaky": 1,
         "fem_float": 0,
+        "fem_sortev": sort_neff,
     }
 
     # Update global simulation parameters

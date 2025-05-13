@@ -128,7 +128,7 @@ def model_photonic_lantern_taper(
         - "mode_positions": Dictionary mapping LP mode names to their positions along z
         - "mode_core_diameters": Dictionary mapping LP mode names to their core diameters along z
     """
-    z = np.linspace(0, taper_length, z_points)
+    z = np.linspace(0, taper_length, z_points, endpoint=True)
     taper_ratio = sigmoid_taper_ratio(z, taper_length)
 
     # Determine number of fibers and initial positions
