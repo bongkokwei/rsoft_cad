@@ -263,12 +263,12 @@ def femsimulation():
     args = parser.parse_args()
 
     expt_dir = get_next_run_folder(args.data_dir, args.output_prefix)
-    logger.info(f"Created experiment directory: {expt_dir}")
 
     # Set up logging
     log_path = os.path.join(args.data_dir, expt_dir, "simulation.log")
     logger = configure_logging(log_file=log_path, log_level=logging.INFO)
     logger.info("Starting femsimulation script")
+    logger.info(f"Created experiment directory: {expt_dir}")
 
     # Update logging level if specified
     if args.log_level:
