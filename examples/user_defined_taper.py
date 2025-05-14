@@ -31,6 +31,7 @@ from rsoft_cad.simulations import make_parameterised_lantern
 from rsoft_cad.utils import visualise_lp_lantern
 from rsoft_cad.geometry import sigmoid_taper_ratio
 from rsoft_cad import LaunchType, TaperType
+from rsoft_cad.geometry import create_custom_taper_profile
 
 
 if __name__ == "__main__":
@@ -40,22 +41,12 @@ if __name__ == "__main__":
     save_to = os.path.join(data_dir, expt_dir)
     file_name_dim = "custom_profile_dim.txt"
 
-    z = np.linspace(0, 1, 300)
-    taper_ratios = sigmoid_taper_ratio(z, taper_length=1)
-    np.savetxt(
-        os.path.join(save_to, file_name_dim),
-        np.column_stack((z, taper_ratios)),
-        delimiter="\t",
-        header="/rn,a,b /nx0 100 0 1 1 OUTPUT_REAL\n ",
-        comments="",
-    )
-
-    np.savetxt(
-        os.path.join(save_to, "rsoft_data_files", file_name_dim),
-        np.column_stack((z, taper_ratios)),
-        delimiter="\t",
-        header="/rn,a,b /nx0 100 0 1 1 OUTPUT_REAL\n ",
-        comments="",
+    # Create custom taper profile with the sigmoid parameters
+    z, ratios = create_custom_taper_profile(
+        data_dir=data_dir,
+        expt_dir=expt_dir,
+        rsoft_data_dir="rsoft_data_files",
+        file_name=file_name_dim,
     )
 
     filepath, file_name, core_map = make_parameterised_lantern(
