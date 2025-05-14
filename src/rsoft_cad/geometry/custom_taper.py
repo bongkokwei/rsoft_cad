@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
+import os
 
 from rsoft_cad.layout import multilayer_lantern_layout
 
@@ -489,3 +490,77 @@ if __name__ == "__main__":
     ax_taper.set_title("Taper Ratio Profile")
 
     plt.show()
+
+
+def create_custom_taper_profile(
+    data_dir,
+    expt_dir,
+    file_name="custom_profile_dim.txt",
+    num_points=300,
+    taper_length=1,
+    z_range=(0, 1),
+    header="/rn,a,b /nx0 100 0 1 1 OUTPUT_REAL\n ",
+    save_to_rsoft_data=True,
+    rsoft_data_dir="rsoft_data_files",
+):
+    """
+    Create a custom taper profile using sigmoid function and save to file(s).
+
+    Parameters:
+    -----------
+    data_dir : str
+        Base directory for data
+    expt_dir : str
+        Experiment directory name
+    file_name : str, optional
+        Name of the output file, default is "custom_profile_dim.txt"
+    num_points : int, optional
+        Number of points in the profile, default is 300
+    taper_length : float, optional
+        Length parameter for the sigmoid taper ratio, default is 1
+    z_range : tuple, optional
+        Range of z values (start, end), default is (0, 1)
+    header : str, optional
+        Header text for the output file
+    save_to_rsoft_data : bool, optional
+        Whether to also save to rsoft_data_files subdirectory, default is True
+    rsoft_data_dir:
+        Data directory name.
+
+    Returns:
+    --------
+    tuple
+        (z, taper_ratios) arrays
+    """
+    # Create z array
+    z = np.linspace(z_range[0], z_range[1], num_points)
+
+    # Calculate taper ratios
+    taper_ratios = sigmoid_taper_ratio(z, taper_length=taper_length)
+
+    # Prepare save location
+    save_to = os.path.join(data_dir, expt_dir)
+
+    # Save to main directory
+    np.savetxt(
+        os.path.join(save_to, file_name),
+        np.column_stack((z, taper_ratios)),
+        delimiter="\t",
+        header=header,
+        comments="",
+    )
+
+    # Optionally save to rsoft_data_files subdirectory
+    if save_to_rsoft_data:
+        rsoft_dir = os.path.join(save_to, rsoft_data_dir)
+        # Create directory if it doesn't exist
+        os.makedirs(rsoft_dir, exist_ok=True)
+        np.savetxt(
+            os.path.join(rsoft_dir, file_name),
+            np.column_stack((z, taper_ratios)),
+            delimiter="\t",
+            header=header,
+            comments="",
+        )
+
+    return z, taper_ratios

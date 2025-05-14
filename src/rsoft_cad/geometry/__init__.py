@@ -8,4 +8,5 @@ from .custom_taper import (
     plot_combined_taper,
     model_photonic_lantern_taper,
     extract_lantern_endpoints,
+    create_custom_taper_profile,
 )
