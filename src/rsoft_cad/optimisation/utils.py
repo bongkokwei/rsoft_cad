@@ -122,9 +122,7 @@ def build_parameterised_lantern(
     launch_mode: str = "LP01",
     taper_factor: float = 1,
     taper_length: float = 50000,
-    sigmoid_params: Optional[
-        Dict[str, Any]
-    ] = None,  # Dictionary for taper-specific parameters
+    sigmoid_params: Optional[Dict[str, Any]] = None,
     **additional_params: Any,
 ) -> Tuple[str, str, Dict[str, Any]]:
     """
@@ -150,6 +148,10 @@ def build_parameterised_lantern(
     # Set up logging
     logger = logging.getLogger(__name__)
     logger.info(f"Creating lantern with run name: {run_name}")
+
+    # Initialize sigmoid_params if None
+    if sigmoid_params is None:
+        sigmoid_params = {}
 
     if taper_file_name is None:
         taper_config_dict = {
