@@ -10,3 +10,9 @@ from rsoft_cad.optimisation.utils import (
     build_parameterised_lantern,
     build_and_simulate_lantern,
 )
+
+from rsoft_cad.optimisation.cost_function import (
+    calculate_overlap_all_modes,
+    delete_files_except,
+    overlap_integral,
+)

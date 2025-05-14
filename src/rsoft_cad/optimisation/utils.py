@@ -18,6 +18,7 @@ from rsoft_cad.constants import SINGLE_MODE_FIBERS
 from rsoft_cad import configure_logging
 from rsoft_cad.geometry import sigmoid_taper_ratio, create_custom_taper_profile
 from rsoft_cad import LaunchType, TaperType
+from rsoft_cad.optimisation.cost_function import calculate_overlap_all_modes
 
 
 def get_fiber_type_list_by_indices(
@@ -124,6 +125,8 @@ def build_parameterised_lantern(
     taper_factor: float = 1,
     taper_length: float = 50000,
     sigmoid_params: Optional[Dict[str, Any]] = None,
+    femnev: int = 12,
+    num_grid: int = 200,
     **additional_params: Any,
 ) -> Tuple[str, str, Dict[str, Any]]:
     """
@@ -134,10 +137,12 @@ def build_parameterised_lantern(
         run_name: Name for this lantern run
         highest_mode: Mode order to simulate (default: "LP02")
         launch_mode: Input mode (default: "LP01")
-        taper_factor: Tapering factor for the lantern (default: 18.75)
-        taper_length: Length of taper in microns (default: 40000)
+        taper_factor: Tapering factor for the lantern (default: 1)
+        taper_length: Length of taper in microns (default: 50000)
         sigmoid_params: Dictionary containing parameters for taper profile generation and sigmoid function
                      These parameters will be passed to create_custom_taper_profile and sigmoid_taper_ratio
+        femnev: Number of effictive indices to look for (default: 12)
+        num_grid: Number of grids per axis (default: 200)
         **additional_params: Additional parameters to pass to make_parameterised_lantern
 
     Returns:
@@ -211,15 +216,15 @@ def build_parameterised_lantern(
         "taper_factor": 1,
         "taper_length": taper_length,
         "sim_type": "femsim",
-        "femnev": 12,
+        "femnev": femnev,
         "save_neff": True,
         "step_x": None,
         "step_y": None,
         "domain_min": 0,
         "data_dir": data_dir,
         "expt_dir": expt_dir,
-        "num_grid": 200,
-        "mode_output": "OUTPUT_NONE",
+        "num_grid": num_grid,
+        "mode_output": "OUTPUT_REAL_IMAG",
         "taper_config": taper_config_dict,
     }
 
@@ -322,14 +327,15 @@ def build_and_simulate_lantern(
 
     # Calculate and return the overlap error
     logger.info(f"Calculating overlap integral")
-    overlap_val = calculate_overlap(file_name)
+    overlap_val = calculate_overlap_all_modes(
+        data_dir=data_dir,
+        expt_dir=expt_dir,
+        input_dir=save_folder,
+        input_file_prefix=f"{run_name}_ex",
+        ref_dir="ref_mode_profile",
+        ref_file_prefix="femsim_result_ex",
+        num_modes=12,
+    )
     logger.info(f"Overlap integral: {overlap_val:.4f}")
 
     return overlap_val
-
-
-def calculate_overlap(filename):
-    # Placeholder for your overlap calculation
-    # Assume this function takes the simulation filename and returns a normalized overlap value (0 to 1)
-    # For demonstration, let's return a random value
-    return random.random()

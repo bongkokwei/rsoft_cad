@@ -294,7 +294,7 @@ if __name__ == "__main__":
         data_dir=data_dir,  # Pass data_dir
         expt_dir=expt_dir,
         highest_mode="LP02",
-        mode_output="OUTPUT_NONE",
+        mode_output="OUTPUT_REAL_IMAG",
     )
 
     print("\n--- Final Results ---")
