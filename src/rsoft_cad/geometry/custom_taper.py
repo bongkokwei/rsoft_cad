@@ -495,13 +495,15 @@ if __name__ == "__main__":
 def create_custom_taper_profile(
     data_dir,
     expt_dir,
+    taper_func=None,
     file_name="custom_profile_dim.txt",
     num_points=300,
     taper_length=1,
     z_range=(0, 1),
     header="/rn,a,b /nx0 100 0 1 1 OUTPUT_REAL\n ",
     save_to_rsoft_data=True,
-    rsoft_data_dir="rsoft_data_files",
+    rsoft_data_dir=None,
+    **taper_func_kwargs,
 ):
     """
     Create a custom taper profile using sigmoid function and save to file(s).
@@ -512,6 +514,10 @@ def create_custom_taper_profile(
         Base directory for data
     expt_dir : str
         Experiment directory name
+    taper_func : callable, optional
+        Function to generate the taper profile. Should accept a numpy array of z values
+        as first argument and return a numpy array of taper ratios.
+        If None (default), will use sigmoid_taper_ratio.
     file_name : str, optional
         Name of the output file, default is "custom_profile_dim.txt"
     num_points : int, optional
@@ -526,6 +532,8 @@ def create_custom_taper_profile(
         Whether to also save to rsoft_data_files subdirectory, default is True
     rsoft_data_dir:
         Data directory name.
+    **taper_func_kwargs :
+        Additional keyword arguments to pass to the taper function
 
     Returns:
     --------
@@ -536,8 +544,15 @@ def create_custom_taper_profile(
     z = np.linspace(z_range[0], z_range[1], num_points)
 
     # Calculate taper ratios
-    taper_ratios = sigmoid_taper_ratio(z, taper_length=taper_length)
-
+    # Calculate taper ratios using the provided function or default
+    if taper_func is None:
+        # Use sigmoid_taper_ratio as default
+        taper_ratios = sigmoid_taper_ratio(
+            z, taper_length=taper_length, **taper_func_kwargs
+        )
+    else:
+        # Use the custom function provided
+        taper_ratios = taper_func(z, **taper_func_kwargs)
     # Prepare save location
     save_to = os.path.join(data_dir, expt_dir)
 
