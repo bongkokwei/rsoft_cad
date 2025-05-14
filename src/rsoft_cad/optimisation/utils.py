@@ -1,5 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 import textwrap
 import logging
 import os
@@ -15,6 +16,8 @@ from rsoft_cad.utils import visualise_lp_lantern
 from rsoft_cad.constants import lp_mode_cutoffs_freq
 from rsoft_cad.constants import SINGLE_MODE_FIBERS
 from rsoft_cad import configure_logging
+from rsoft_cad.geometry import sigmoid_taper_ratio, create_custom_taper_profile
+from rsoft_cad import LaunchType, TaperType
 
 
 def get_fiber_type_list_by_indices(
@@ -111,13 +114,17 @@ def fiber_assignment(
 
 def build_parameterised_lantern(
     fiber_indices: List[int],
+    taper_file_name: Optional[str],
     run_name: str = "test_run",
     expt_dir: str = "optimising_expt",
     data_dir: str = "output",
     highest_mode: str = "LP02",
     launch_mode: str = "LP01",
-    taper_factor: float = 18.75,
-    taper_length: float = 40000,
+    taper_factor: float = 1,
+    taper_length: float = 50000,
+    sigmoid_params: Optional[
+        Dict[str, Any]
+    ] = None,  # Dictionary for taper-specific parameters
     **additional_params: Any,
 ) -> Tuple[str, str, Dict[str, Any]]:
     """
@@ -130,6 +137,8 @@ def build_parameterised_lantern(
         launch_mode: Input mode (default: "LP01")
         taper_factor: Tapering factor for the lantern (default: 18.75)
         taper_length: Length of taper in microns (default: 40000)
+        sigmoid_params: Dictionary containing parameters for taper profile generation and sigmoid function
+                     These parameters will be passed to create_custom_taper_profile and sigmoid_taper_ratio
         **additional_params: Additional parameters to pass to make_parameterised_lantern
 
     Returns:
@@ -142,12 +151,24 @@ def build_parameterised_lantern(
     logger = logging.getLogger(__name__)
     logger.info(f"Creating lantern with run name: {run_name}")
 
+    if taper_file_name is None:
+        taper_config_dict = {
+            "core": TaperType.linear(),
+            "cladding": TaperType.linear(),
+            "cap": TaperType.linear(),
+        }
+    else:
+        taper_config_dict = {
+            "core": TaperType.user(1, taper_file_name),
+            "cladding": TaperType.user(1, taper_file_name),
+            "cap": TaperType.user(1, taper_file_name),
+        }
     # Create a dictionary with default parameters
     default_params: Dict[str, Any] = {
         "highest_mode": highest_mode,
         "launch_mode": launch_mode,
         "opt_name": run_name,
-        "taper_factor": taper_factor,
+        "taper_factor": 1,
         "taper_length": taper_length,
         "sim_type": "femsim",
         "femnev": 12,
@@ -159,11 +180,22 @@ def build_parameterised_lantern(
         "expt_dir": expt_dir,
         "num_grid": 200,
         "mode_output": "OUTPUT_NONE",
+        "taper_config": taper_config_dict,
     }
 
     # Update with any additional parameters
     default_params.update(additional_params)
     logger.debug(f"Lantern parameters: {default_params}")
+
+    # Create custom taper profile with the sigmoid parameters
+    z, ratios = create_custom_taper_profile(
+        data_dir=data_dir,
+        expt_dir=expt_dir,
+        rsoft_data_dir="rsoft_data_files",
+        taper_func=sigmoid_taper_ratio,
+        file_name=taper_file_name,
+        **sigmoid_params,  # Pass the sigmoid parameters
+    )
 
     # Create partial function with updated parameters
     lantern_func = partial(make_parameterised_lantern, **default_params)
