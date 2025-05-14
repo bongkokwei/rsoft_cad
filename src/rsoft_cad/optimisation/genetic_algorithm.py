@@ -40,6 +40,7 @@ def calculate_fitness(
     expt_dir: str = "ga_run_",
     taper_length: float = 50000,
     taper_factor: float = 1,
+    taper_profile: str = None,  # Added taper_profile parameter
     mode_output: str = "OUTPUT_REAL_IMAG",
     domain_min: float = 50000,
 ) -> float:
@@ -48,12 +49,14 @@ def calculate_fitness(
 
     Args:
         individual: A list of fiber indices.
-        highest_mode:
-        expt_dir:
-        taper_length:
-        taper_factor:
-        mode_output:
-        domain_min:
+        highest_mode: Mode order to simulate.
+        data_dir: Data directory.
+        expt_dir: Experiment directory.
+        taper_length: Length of taper in microns.
+        taper_factor: Tapering factor.
+        taper_profile: Custom taper profile (None for default).
+        mode_output: Mode output type.
+        domain_min: Minimum domain size.
 
     Returns:
         The fitness value (overlap) of the individual.
@@ -67,6 +70,7 @@ def calculate_fitness(
         expt_dir=expt_dir,
         taper_length=taper_length,
         taper_factor=taper_factor,
+        taper_profile=taper_profile,  # Pass the taper_profile parameter
         mode_output=mode_output,
         domain_min=domain_min,
     )
@@ -154,6 +158,7 @@ def genetic_algorithm(
     expt_dir: str = "ga_run_",
     taper_length: float = 50000,
     taper_factor: float = 1,
+    taper_profile: str = None,  # Added taper_profile parameter
     mode_output: str = "OUTPUT_REAL_IMAG",
     domain_min: float = 50000,
 ) -> Tuple[List[int], float]:
@@ -169,12 +174,13 @@ def genetic_algorithm(
         crossover_rate: Probability of performing crossover.
         num_parents: Number of parents to select for crossover.
         highest_mode: Mode order to simulate.
-        data_dir:
-        expt_dir:
-        taper_length:
-        taper_factor:
-        mode_output:
-        domain_min:
+        data_dir: Data directory.
+        expt_dir: Experiment directory.
+        taper_length: Length of taper in microns.
+        taper_factor: Tapering factor.
+        taper_profile: Custom taper profile (None for default).
+        mode_output: Mode output type.
+        domain_min: Minimum domain size.
 
     Returns:
         A tuple containing:
@@ -200,6 +206,7 @@ def genetic_algorithm(
                 expt_dir=expt_dir,
                 taper_length=taper_length,
                 taper_factor=taper_factor,
+                taper_profile=taper_profile,
                 mode_output=mode_output,
                 domain_min=domain_min,
             )
@@ -275,6 +282,8 @@ if __name__ == "__main__":
     mutation_rate = 0.01
     crossover_rate = 0.8
     num_parents = 20
+
+    taper_profile = None
 
     best_individual, best_fitness = genetic_algorithm(
         population_size=population_size,
