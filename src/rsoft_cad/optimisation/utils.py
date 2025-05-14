@@ -114,7 +114,7 @@ def fiber_assignment(
 
 def build_parameterised_lantern(
     fiber_indices: List[int],
-    taper_file_name: Optional[str],
+    taper_file_name: Optional[str] = None,
     run_name: str = "test_run",
     expt_dir: str = "optimising_expt",
     data_dir: str = "output",
@@ -231,6 +231,7 @@ def build_parameterised_lantern(
 
 def build_and_simulate_lantern(
     fiber_indices: List[int],
+    taper_file_name: Optional[str] = None,
     run_name: str = "test_run",
     highest_mode: str = "LP02",
     launch_mode: str = "LP01",
@@ -264,6 +265,11 @@ def build_and_simulate_lantern(
     # Set up logging
     logger = logging.getLogger(__name__)
     logger.info(f"Creating and simulating lantern with run name: {run_name}")
+
+    if "taper_profile" in additional_params:
+        taper_file_name = additional_params.pop("taper_profile")
+    else:
+        taper_file_name = None
 
     # Create lantern
     filepath, file_name, core_map = build_parameterised_lantern(
