@@ -160,11 +160,48 @@ def build_parameterised_lantern(
             "cap": TaperType.linear(),
         }
     else:
+        # Check if the taper_file_name exists in the expected locations
         taper_config_dict = {
             "core": TaperType.user(1, taper_file_name),
             "cladding": TaperType.user(1, taper_file_name),
             "cap": TaperType.user(1, taper_file_name),
         }
+
+        taper_file_path = os.path.join(
+            data_dir,
+            expt_dir,
+            taper_file_name,
+        )
+        taper_file_path_rsoft = os.path.join(
+            data_dir,
+            expt_dir,
+            "rsoft_data_files",
+            taper_file_name,
+        )
+
+        files_exist = os.path.exists(
+            taper_file_path,
+        ) or os.path.exists(
+            taper_file_path_rsoft,
+        )
+
+        if not files_exist:
+            logger.warning(
+                f"Taper file '{taper_file_name}' does not exist at either "
+                f"{taper_file_path} or {taper_file_path_rsoft}. "
+                f"It will be created now."
+            )
+
+            # Create the custom taper profile
+            z, ratios = create_custom_taper_profile(
+                data_dir=data_dir,
+                expt_dir=expt_dir,
+                rsoft_data_dir="rsoft_data_files",
+                taper_func=None,
+                file_name=taper_file_name,
+                **sigmoid_params,  # Pass the sigmoid parameters
+            )
+
     # Create a dictionary with default parameters
     default_params: Dict[str, Any] = {
         "highest_mode": highest_mode,
@@ -188,16 +225,6 @@ def build_parameterised_lantern(
     # Update with any additional parameters
     default_params.update(additional_params)
     logger.debug(f"Lantern parameters: {default_params}")
-
-    # Create custom taper profile with the sigmoid parameters
-    z, ratios = create_custom_taper_profile(
-        data_dir=data_dir,
-        expt_dir=expt_dir,
-        rsoft_data_dir="rsoft_data_files",
-        taper_func=None,
-        file_name=taper_file_name,
-        **sigmoid_params,  # Pass the sigmoid parameters
-    )
 
     # Create partial function with updated parameters
     lantern_func = partial(make_parameterised_lantern, **default_params)
@@ -265,11 +292,6 @@ def build_and_simulate_lantern(
     # Set up logging
     logger = logging.getLogger(__name__)
     logger.info(f"Creating and simulating lantern with run name: {run_name}")
-
-    if "taper_profile" in additional_params:
-        taper_file_name = additional_params.pop("taper_profile")
-    else:
-        taper_file_name = None
 
     # Create lantern
     filepath, file_name, core_map = build_parameterised_lantern(

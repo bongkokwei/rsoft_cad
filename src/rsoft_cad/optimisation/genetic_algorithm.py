@@ -71,7 +71,6 @@ def calculate_fitness(
         expt_dir=expt_dir,
         taper_length=taper_length,
         taper_factor=taper_factor,
-        taper_profile=taper_profile,  # Pass the taper_profile parameter
         mode_output=mode_output,
         domain_min=domain_min,
     )
@@ -283,8 +282,6 @@ if __name__ == "__main__":
     mutation_rate = 0.01
     crossover_rate = 0.8
     num_parents = 20
-
-    taper_profile = None
 
     best_individual, best_fitness = genetic_algorithm(
         population_size=population_size,
