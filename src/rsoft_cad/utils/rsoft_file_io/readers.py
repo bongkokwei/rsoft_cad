@@ -61,7 +61,6 @@ def read_field_data(filename):
     }
 
 
-
 def read_mon_file(file_path):
     """
     Read a .mon file into a pandas DataFrame.
@@ -115,7 +114,6 @@ def read_mon_file(file_path):
     data_df = pd.DataFrame(data_array, columns=column_names)
 
     return header_info, data_df
-
 
 
 def read_nef_file(file_path):
@@ -192,4 +190,57 @@ def read_nef_file(file_path):
     }
 
 
+def read_femsim_field_data(filename):
+    """
+    Read complex data from .m00 file format and return as a dictionary
+    """
+    with open(filename, "r") as f:
+        lines = f.readlines()
 
+    # Extract header information (skipping the first two lines)
+    header_line_1 = lines[2].strip().split()
+    nx = int(header_line_1[0])  # num_grid_x
+    xmin = float(header_line_1[1])  # x_min
+    xmax = float(header_line_1[2])  # x_max
+    z_pos = float(header_line_1[3])  # z_pos
+    output_type = header_line_1[4]  # output type
+    effective_index = float(header_line_1[5])  # effective index
+    wavelength_str = header_line_1[7]  # Wavelength=1.55
+    wavelength = float(wavelength_str.split("=")[1])
+
+    header_line_2 = lines[3].strip().split()
+    ny = int(header_line_2[0])  # num_grid_y
+    ymin = float(header_line_2[1])  # y_min
+    ymax = float(header_line_2[2])  # y_max
+
+    print(
+        f"Header info: Grid reference: ({nx}, {ny}), X-Range: [{xmin}, {xmax}], Y-Range: [{ymin}, {ymax}], "
+        f"Z-position: {z_pos}, Effective index: {effective_index}, Wavelength: {wavelength}"
+    )
+
+    # Extract data values (starting from line 4)
+    data_str = " ".join(lines[4:]).strip().split()
+    data = [float(val) for val in data_str]
+
+    # Convert to complex numbers
+    complex_data = []
+    for i in range(0, len(data), 2):
+        if i + 1 < len(data):
+            real = data[i]
+            imag = data[i + 1]
+            complex_data.append(complex(real, imag))
+
+    # Return all values as a dictionary
+    return {
+        "complex_data": complex_data,
+        "xmin": xmin,
+        "xmax": xmax,
+        "ymin": ymin,
+        "ymax": ymax,
+        "taper_length": z_pos,
+        "output_type": output_type,
+        "effective_index": effective_index,
+        "wavelength": wavelength,
+        "nx": nx,
+        "ny": ny,
+    }

@@ -21,7 +21,12 @@ from .rsoft_file_plot.field_plots import plot_field_data
 from .rsoft_file_plot.monitor_plots import plot_mon_data
 
 # Import I/O functions
-from .rsoft_file_io.readers import read_field_data, read_mon_file, read_nef_file
+from .rsoft_file_io.readers import (
+    read_field_data,
+    read_mon_file,
+    read_nef_file,
+    read_femsim_field_data,
+)
 from .rsoft_file_io.finders import (
     find_files_by_extension,
     find_fld_files,
