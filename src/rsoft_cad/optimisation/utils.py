@@ -194,7 +194,7 @@ def build_parameterised_lantern(
         data_dir=data_dir,
         expt_dir=expt_dir,
         rsoft_data_dir="rsoft_data_files",
-        taper_func=sigmoid_taper_ratio,
+        taper_func=None,
         file_name=taper_file_name,
         **sigmoid_params,  # Pass the sigmoid parameters
     )
@@ -274,6 +274,7 @@ def build_and_simulate_lantern(
     # Create lantern
     filepath, file_name, core_map = build_parameterised_lantern(
         fiber_indices=fiber_indices,
+        taper_file_name=taper_file_name,
         run_name=run_name,
         expt_dir=expt_dir,
         data_dir=data_dir,

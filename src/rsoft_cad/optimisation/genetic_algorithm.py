@@ -64,6 +64,7 @@ def calculate_fitness(
     run_name = f"eval_run_{''.join(map(str, individual))}"  # Create a unique run name
     overlap = build_and_simulate_lantern(
         fiber_indices=individual,
+        taper_file_name="custom_taper.dat",
         highest_mode=highest_mode,
         run_name=run_name,
         data_dir=data_dir,
