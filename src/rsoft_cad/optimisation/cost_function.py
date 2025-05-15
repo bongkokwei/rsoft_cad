@@ -222,7 +222,7 @@ def calculate_overlap_all_modes(
 
     delete_files_except(
         folder_path=os.path.join(data_dir, expt_dir, input_dir),
-        match_string="ex.m",
+        match_string=None,
         files_to_keep=["custom_taper.dat"],
     )
     return total_overlap
