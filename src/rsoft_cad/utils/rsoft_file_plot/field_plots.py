@@ -7,86 +7,122 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def plot_field_data(field_data):
-    """Create visualizations for the complex field data and return dictionary of (fig, ax) pairs"""
-    # Extract values from the field_data dictionary
-    complex_data = field_data["complex_data"]
-    xmin = field_data["xmin"]
-    xmax = field_data["xmax"]
-    ymin = field_data["ymin"]
-    ymax = field_data["ymax"]
-    wavelength = field_data["wavelength"]
-    taper_length = field_data["taper_length"]
-    nx = field_data["nx"]
-    ny = field_data["ny"]
+def plot_field_data(data_dict, plot_type="magnitude", figsize=(10, 8), cmap="viridis"):
+    """
+    Plot the complex field data from a dictionary returned by read_femsim_field_data.
 
-    # Calculate magnitudes
-    magnitudes = np.array([abs(c) for c in complex_data])
-    phases = np.array([np.angle(c) for c in complex_data])
+    Parameters:
+    -----------
+    data_dict : dict
+        Dictionary containing the complex data and metadata from read_femsim_field_data
+    plot_type : str, optional
+        Type of plot to generate: 'magnitude', 'phase', 'real', 'imaginary', or 'all'
+        Default is 'magnitude'
+    figsize : tuple, optional
+        Size of the figure in inches. Default is (10, 8)
+    cmap : str, optional
+        Colormap to use for the plots. Default is 'viridis'
 
-    # Use actual grid dimensions from the data
-    print(f"Grid dimensions: {nx}x{ny}")
+    Returns:
+    --------
+    fig : matplotlib.figure.Figure
+        The figure object containing the plot(s)
+    """
 
-    # Create coordinate arrays
+    # Extract data and metadata from the dictionary
+    complex_data = data_dict["complex_data"]
+    xmin, xmax = data_dict["xmin"], data_dict["xmax"]
+    ymin, ymax = data_dict["ymin"], data_dict["ymax"]
+    nx, ny = data_dict["nx"], data_dict["ny"]
+
+    # Create coordinate grids
     x = np.linspace(xmin, xmax, nx)
     y = np.linspace(ymin, ymax, ny)
     X, Y = np.meshgrid(x, y)
 
-    # Reshape data to 2D grid using actual dimensions
-    Z_mag = np.zeros((ny, nx))
-    Z_phase = np.zeros((ny, nx))
+    # Handle different plot types
+    if plot_type == "all":
+        # Create a figure with 4 subplots for all visualizations
+        fig, axes = plt.subplots(2, 2, figsize=figsize)
 
-    for i in range(min(nx * ny, len(magnitudes))):
-        row = i // nx
-        col = i % nx
-        if row < ny and col < nx:
-            Z_mag[row, col] = magnitudes[i]
-            Z_phase[row, col] = phases[i]
+        # Magnitude plot
+        im0 = axes[0, 0].pcolormesh(
+            X, Y, np.abs(complex_data).T, cmap=cmap, shading="auto"
+        )
+        axes[0, 0].set_title("Magnitude")
+        axes[0, 0].set_xlabel("X")
+        axes[0, 0].set_ylabel("Y")
+        fig.colorbar(im0, ax=axes[0, 0], label="Magnitude")
 
-    # Create individual figures and store in dictionary
-    result = {}
+        # Phase plot
+        im1 = axes[0, 1].pcolormesh(
+            X, Y, np.angle(complex_data, deg=True).T, cmap=cmap, shading="auto"
+        )
+        axes[0, 1].set_title("Phase (degrees)")
+        axes[0, 1].set_xlabel("X")
+        axes[0, 1].set_ylabel("Y")
+        fig.colorbar(im1, ax=axes[0, 1], label="Phase (degrees)")
 
-    # Plot 1: Magnitude as 2D colormap
-    fig1, ax1 = plt.subplots(figsize=(8, 6))
-    im1 = ax1.pcolormesh(X, Y, Z_mag, shading="auto", cmap="viridis")
-    plt.colorbar(im1, ax=ax1, label="Magnitude")
-    ax1.set_title(
-        f"Field Magnitude (Wavelength={wavelength}, Length={taper_length}microns)"
-    )
-    ax1.set_xlabel("X position")
-    ax1.set_ylabel("Y position")
-    result["magnitude_2d"] = (fig1, ax1)
+        # Real part plot
+        im2 = axes[1, 0].pcolormesh(
+            X, Y, np.real(complex_data).T, cmap=cmap, shading="auto"
+        )
+        axes[1, 0].set_title("Real Part")
+        axes[1, 0].set_xlabel("X")
+        axes[1, 0].set_ylabel("Y")
+        fig.colorbar(im2, ax=axes[1, 0], label="Real Part")
 
-    # Plot 2: 3D surface of magnitude
-    fig2, ax2 = plt.subplots(figsize=(8, 6), subplot_kw={"projection": "3d"})
-    surf = ax2.plot_surface(X, Y, Z_mag, cmap="plasma", linewidth=0, antialiased=False)
-    plt.colorbar(surf, ax=ax2, shrink=0.5, aspect=5, label="Magnitude")
-    ax2.set_title("3D Surface Plot of Magnitude")
-    ax2.set_xlabel("X position")
-    ax2.set_ylabel("Y position")
-    ax2.set_zlabel("Magnitude")
-    result["magnitude_3d"] = (fig2, ax2)
+        # Imaginary part plot
+        im3 = axes[1, 1].pcolormesh(
+            X, Y, np.imag(complex_data).T, cmap=cmap, shading="auto"
+        )
+        axes[1, 1].set_title("Imaginary Part")
+        axes[1, 1].set_xlabel("X")
+        axes[1, 1].set_ylabel("Y")
+        fig.colorbar(im3, ax=axes[1, 1], label="Imaginary Part")
+    else:
+        # Single plot based on plot_type
+        fig, ax = plt.subplots(figsize=figsize)
 
-    # Plot 3: Phase as 2D colormap
-    fig3, ax3 = plt.subplots(figsize=(8, 6))
-    im3 = ax3.pcolormesh(X, Y, Z_phase, shading="auto", cmap="hsv")
-    plt.colorbar(im3, ax=ax3, label="Phase (radians)")
-    ax3.set_title("Field Phase")
-    ax3.set_xlabel("X position")
-    ax3.set_ylabel("Y position")
-    result["phase_2d"] = (fig3, ax3)
+        if plot_type == "magnitude":
+            plot_data = np.abs(complex_data)
+            title = "Field Magnitude"
+            cbar_label = "Magnitude"
+        elif plot_type == "phase":
+            plot_data = np.angle(complex_data, deg=True)
+            title = "Field Phase (degrees)"
+            cbar_label = "Phase (degrees)"
+        elif plot_type == "real":
+            plot_data = np.real(complex_data)
+            title = "Real Part of Field"
+            cbar_label = "Real Part"
+        elif plot_type == "imaginary":
+            plot_data = np.imag(complex_data)
+            title = "Imaginary Part of Field"
+            cbar_label = "Imaginary Part"
+        else:
+            raise ValueError(
+                f"Invalid plot_type: {plot_type}. Must be one of 'magnitude', 'phase', 'real', 'imaginary', or 'all'"
+            )
 
-    # Plot 4: Contour plot of magnitude
-    fig4, ax4 = plt.subplots(figsize=(8, 6))
-    contour = ax4.contour(X, Y, Z_mag, 15, colors="black")
-    im4 = ax4.contourf(X, Y, Z_mag, 15, cmap="RdYlBu_r")
-    plt.colorbar(im4, ax=ax4, label="Magnitude")
-    ax4.clabel(contour, inline=True, fontsize=8)
-    ax4.set_title("Contour Plot of Magnitude")
-    ax4.set_xlabel("X position")
-    ax4.set_ylabel("Y position")
-    result["magnitude_contour"] = (fig4, ax4)
+        im = ax.pcolormesh(X, Y, plot_data.T, cmap=cmap, shading="auto")
+        ax.set_title(title)
+        ax.set_xlabel("X")
+        ax.set_ylabel("Y")
+        fig.colorbar(im, ax=ax, label=cbar_label)
 
-    return result
+    # Add metadata to the plot
+    z_pos = data_dict.get("z_pos", "unknown")
+    output_type = data_dict.get("output_type", "")
+    wavelength = data_dict.get("wavelength", "unknown")
 
+    metadata_str = f"Z-position: {z_pos}, Output type: {output_type}"
+    if "wavelength" in data_dict:
+        metadata_str += f", Wavelength: {wavelength}"
 
+    plt.figtext(0.5, 0.01, metadata_str, ha="center", fontsize=9)
+    plt.tight_layout(
+        rect=[0, 0.03, 1, 0.97]
+    )  # Adjust layout to make room for metadata text
+
+    return fig

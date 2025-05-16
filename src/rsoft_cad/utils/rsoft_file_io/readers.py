@@ -12,55 +12,6 @@ import numpy as np
 import shutil
 
 
-def read_field_data(filename):
-    """
-    Read complex data from the file format provided and return as a dictionary
-    """
-
-    with open(filename, "r") as f:
-        lines = f.readlines()
-
-    # Extract header information
-    header_line_1 = lines[2].strip().split()
-    nx = int(header_line_1[0])  # Grid reference value
-    xmin = float(header_line_1[1])
-    xmax = float(header_line_1[2])
-    wavelength = float(header_line_1[5].split("=")[1])
-    taper_length = int(header_line_1[3])
-    header_line_2 = lines[3].strip().split()
-    ny = int(header_line_2[0])
-    ymin = float(header_line_2[1])
-    ymax = float(header_line_2[2])
-
-    print(
-        f"Header info: Grid reference: {nx}, Range: [{xmin}, {xmax}], Wavelength: {wavelength}"
-    )
-
-    # Extract data values (starting from line 4)
-    data_str = " ".join(lines[4:]).strip().split()
-    data = [float(val) for val in data_str]
-    # Convert to complex numbers
-    complex_data = []
-    for i in range(0, len(data), 2):
-        if i + 1 < len(data):
-            real = data[i]
-            imag = data[i + 1]
-            complex_data.append(complex(real, imag))
-
-    # Return all values as a dictionary
-    return {
-        "complex_data": complex_data,
-        "xmin": xmin,
-        "xmax": xmax,
-        "wavelength": wavelength,
-        "taper_length": taper_length,
-        "ymin": ymin,
-        "ymax": ymax,
-        "nx": nx,
-        "ny": ny,
-    }
-
-
 def read_mon_file(file_path):
     """
     Read a .mon file into a pandas DataFrame.
@@ -190,57 +141,112 @@ def read_nef_file(file_path):
     }
 
 
-def read_femsim_field_data(filename):
+def read_field_data(filename):
     """
-    Read complex data from .m00 file format and return as a dictionary
+    Read complex data from a 2D uniform grid file format and return as a dictionary.
+
+    The file format follows this syntax:
+    /rn,a,b/nx0
+    /rn,qa,qb
+    Nx X0 Xn Zpos Output_Type Optional_Data
+    Ny Y0 Yn
+    Data(X0,Y0)      ...      Data(X0,Yn)
+    ...              ...      ...
+    Data(Xn,Y0)      ...      Data(Xn,Yn)
+
+    Returns a dictionary with parsed data and metadata.
     """
     with open(filename, "r") as f:
         lines = f.readlines()
 
-    # Extract header information (skipping the first two lines)
-    header_line_1 = lines[2].strip().split()
-    nx = int(header_line_1[0])  # num_grid_x
-    xmin = float(header_line_1[1])  # x_min
-    xmax = float(header_line_1[2])  # x_max
-    z_pos = float(header_line_1[3])  # z_pos
-    output_type = header_line_1[4]  # output type
-    effective_index = float(header_line_1[5])  # effective index
-    wavelength_str = header_line_1[7]  # Wavelength=1.55
-    wavelength = float(wavelength_str.split("=")[1])
+    # Verify that the file follows the expected format
+    if not lines[0].startswith("/rn"):
+        raise ValueError(
+            f"File {filename} does not follow the expected 2D uniform grid format"
+        )
 
-    header_line_2 = lines[3].strip().split()
-    ny = int(header_line_2[0])  # num_grid_y
-    ymin = float(header_line_2[1])  # y_min
-    ymax = float(header_line_2[2])  # y_max
+    # Extract header information
+    # First two lines are format indicators
+    format_line_1 = lines[0].strip()  # /rn,a,b/nx0
+    format_line_2 = lines[1].strip()  # /rn,qa,qb
+
+    # Parse X grid data (third line)
+    x_line = lines[2].strip().split()
+    nx = int(x_line[0])  # Number of X grid points
+    x0 = float(x_line[1])  # X min
+    xn = float(x_line[2])  # X max
+    z_pos = float(x_line[3])  # Z position
+    output_type = x_line[4]  # Output type
+
+    # Handle optional data if present
+    optional_data = None
+    if len(x_line) > 5:
+        # Check for wavelength in the optional data
+        for item in x_line[5:]:
+            if "=" in item and item.split("=")[0].lower() == "wavelength":
+                wavelength = float(item.split("=")[1])
+                optional_data = {"wavelength": wavelength}
+            # Add more optional parameters as needed
+
+    # Parse Y grid data (fourth line)
+    y_line = lines[3].strip().split()
+    ny = int(y_line[0])  # Number of Y grid points
+    y0 = float(y_line[1])  # Y min
+    yn = float(y_line[2])  # Y max
 
     print(
-        f"Header info: Grid reference: ({nx}, {ny}), X-Range: [{xmin}, {xmax}], Y-Range: [{ymin}, {ymax}], "
-        f"Z-position: {z_pos}, Effective index: {effective_index}, Wavelength: {wavelength}"
+        f"Header info: Grid points: ({nx}, {ny}), X-Range: [{x0}, {xn}], Y-Range: [{y0}, {yn}], "
+        f"Z-position: {z_pos}, Output type: {output_type}"
     )
 
-    # Extract data values (starting from line 4)
-    data_str = " ".join(lines[4:]).strip().split()
-    data = [float(val) for val in data_str]
+    # Initialize a 2D matrix to store the complex data
+    data_matrix = np.zeros((nx, ny), dtype=complex)
 
-    # Convert to complex numbers
-    complex_data = []
-    for i in range(0, len(data), 2):
-        if i + 1 < len(data):
-            real = data[i]
-            imag = data[i + 1]
-            complex_data.append(complex(real, imag))
+    # Parse the data section (starting from line 4)
+    # The data is organized as a 2D grid
+    data_lines = lines[4:]
 
-    # Return all values as a dictionary
-    return {
-        "complex_data": complex_data,
-        "xmin": xmin,
-        "xmax": xmax,
-        "ymin": ymin,
-        "ymax": ymax,
-        "taper_length": z_pos,
+    # Check if there are enough data lines
+    if len(data_lines) < nx:
+        raise ValueError(
+            f"Not enough data rows in file {filename}. Expected {nx}, got {len(data_lines)}"
+        )
+
+    # Process each row of data
+    for i in range(nx):
+        row_data = data_lines[i].strip().split()
+        # Check if there are enough columns
+        if (
+            len(row_data) < ny * 2
+        ):  # Each complex number takes 2 values (real and imaginary)
+            raise ValueError(
+                f"Not enough values in row {i+1}. Expected {ny*2}, got {len(row_data)}"
+            )
+
+        # Convert to complex numbers
+        for j in range(ny):
+            idx = j * 2  # Each complex number consists of two consecutive values
+            if idx + 1 < len(row_data):
+                real = float(row_data[idx])
+                imag = float(row_data[idx + 1])
+                data_matrix[i, j] = complex(real, imag)
+
+    # Create result dictionary
+    result = {
+        "complex_data": data_matrix,
+        "data_format": {"format_line_1": format_line_1, "format_line_2": format_line_2},
+        "xmin": x0,
+        "xmax": xn,
+        "ymin": y0,
+        "ymax": yn,
+        "z_pos": z_pos,
         "output_type": output_type,
-        "effective_index": effective_index,
-        "wavelength": wavelength,
         "nx": nx,
         "ny": ny,
     }
+
+    # Add optional data if available
+    if optional_data:
+        result.update(optional_data)
+
+    return result
