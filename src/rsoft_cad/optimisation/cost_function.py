@@ -52,7 +52,7 @@ def overlap_integral(
     input_file_name = f"{input_file_prefix}{file_extension}"
     ref_file_name = f"{ref_file_prefix}{file_extension}"
     file_1 = os.path.join(data_dir, expt_dir, input_dir, input_file_name)
-    file_2 = os.path.join(data_dir, ref_dir, ref_file_name)
+    file_2 = os.path.join(data_dir, expt_dir, ref_dir, ref_file_name)
     args = [overlap_cmd, overlap_flag, file_1, file_2]
 
     logger.debug(f"Executing command: {' '.join(args)}")
