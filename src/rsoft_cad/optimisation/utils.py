@@ -317,7 +317,7 @@ def build_and_simulate_lantern(
         **additional_params,
     )
 
-    # Build ref model here:
+    # Build ideal output
 
     # Run simulation
     results = run_simulation(

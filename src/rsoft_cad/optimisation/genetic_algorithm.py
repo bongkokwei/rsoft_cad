@@ -41,6 +41,7 @@ def calculate_fitness(
     taper_length: float = 50000,
     taper_factor: float = 1,
     taper_profile: str = None,  # Added taper_profile parameter
+    taper_file_name: str = "custom_taper.dat",
     mode_output: str = "OUTPUT_REAL_IMAG",
     domain_min: float = 50000,
     final_capillary_id: float = 25,
@@ -65,7 +66,7 @@ def calculate_fitness(
     run_name = f"eval_run_{''.join(map(str, individual))}"  # Create a unique run name
     overlap = build_and_simulate_lantern(
         fiber_indices=individual,
-        taper_file_name="custom_taper.dat",
+        taper_file_name=taper_file_name,
         highest_mode=highest_mode,
         run_name=run_name,
         data_dir=data_dir,
@@ -161,6 +162,7 @@ def genetic_algorithm(
     taper_length: float = 50000,
     taper_factor: float = 1,
     taper_profile: str = None,  # Added taper_profile parameter
+    taper_file_name: str = "custom_taper.dat",
     mode_output: str = "OUTPUT_REAL_IMAG",
     domain_min: float = 50000,
     final_capillary_id: float = 25,
@@ -210,6 +212,7 @@ def genetic_algorithm(
                 taper_length=taper_length,
                 taper_factor=taper_factor,
                 taper_profile=taper_profile,
+                taper_file_name=taper_file_name,
                 mode_output=mode_output,
                 domain_min=domain_min,
                 final_capillary_id=final_capillary_id,
