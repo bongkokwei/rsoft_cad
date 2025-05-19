@@ -34,6 +34,7 @@ from .rsoft_file_io.finders import (
 )
 
 from .rsoft_file_io.writers import write_femsim_field_data
+from .rsoft_file_io.write_lp_modes_to_rsoft import generate_and_write_lp_modes
 
 from .rsoft_file_io.filesystem import (
     get_next_run_folder,

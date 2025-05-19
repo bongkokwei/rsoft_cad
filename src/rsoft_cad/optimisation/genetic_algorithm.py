@@ -9,6 +9,7 @@ from rsoft_cad.constants import SINGLE_MODE_FIBERS
 from rsoft_cad import configure_logging
 from rsoft_cad.utils import get_next_run_folder
 from rsoft_cad.optimisation.utils import build_and_simulate_lantern
+from rsoft_cad.utils import generate_and_write_lp_modes
 
 
 def create_initial_population(
@@ -166,6 +167,7 @@ def genetic_algorithm(
     mode_output: str = "OUTPUT_REAL_IMAG",
     domain_min: float = 50000,
     final_capillary_id: float = 25,
+    num_grid: int = 200,
 ) -> Tuple[List[int], float]:
     """
     Perform a genetic algorithm to optimize fiber indices for maximum overlap.
@@ -198,6 +200,20 @@ def genetic_algorithm(
 
     best_fitness = -1.0
     best_individual = []
+
+    # Build ideal output
+    ref_folder_name = "ideal_modes"
+    ref_prefix = ("ref_LP",)
+
+    lp_dir = os.path.join(data_dir, expt_dir, ref_folder_name)
+    generate_and_write_lp_modes(
+        mode_field_diam=final_capillary_id,
+        highest_mode=highest_mode,
+        num_grid_x=num_grid,
+        num_grid_y=num_grid,
+        output_dir=lp_dir,
+        ref_prefix=ref_prefix,
+    )
 
     for generation in range(num_generations):
         logger.info(f"--- Generation {generation + 1} ---")

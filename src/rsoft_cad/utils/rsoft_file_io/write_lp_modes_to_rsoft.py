@@ -16,6 +16,7 @@ def generate_and_write_lp_modes(
     num_grid_x: int = 250,
     num_grid_y: int = 250,
     output_dir: str = "./sandbox/ideal_modes",
+    ref_prefix: str = "ref_LP",
 ) -> None:
     """
     Generate and write linearly polarized (LP) optical fiber mode fields to files.
@@ -51,16 +52,6 @@ def generate_and_write_lp_modes(
     each with both Vertical (V) and Horizontal (H) polarizations.
     For modes with azimuthal number = 0, only 'a' variants are generated with
     both V and H polarizations.
-
-    Examples
-    --------
-    >>> generate_and_write_lp_modes(
-    ...     mode_field_diam=10,
-    ...     highest_mode="LP11",
-    ...     num_grid_x=300,
-    ...     num_grid_y=300,
-    ...     output_dir="./fiber_modes"
-    ... )
     """
     # Check if output directory exists, if not create it
     if not os.path.exists(output_dir):
@@ -111,7 +102,7 @@ def generate_and_write_lp_modes(
             num_grid_y=num_grid_y,
         )
         write_femsim_field_data(
-            f"{output_dir}/ref_LP{mode}.m{i:02d}",
+            os.path.join(output_dir, f"{ref_prefix}.m{i:02d}"),
             abs(field),
             xmin,
             xmax,

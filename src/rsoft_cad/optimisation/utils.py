@@ -12,7 +12,6 @@ from functools import partial
 from rsoft_cad.simulations import make_parameterised_lantern
 from rsoft_cad.layout import create_core_map
 from rsoft_cad.rsoft_simulations import run_simulation
-from rsoft_cad.utils import visualise_lp_lantern
 from rsoft_cad.constants import lp_mode_cutoffs_freq
 from rsoft_cad.constants import SINGLE_MODE_FIBERS
 from rsoft_cad import configure_logging
@@ -276,6 +275,9 @@ def build_and_simulate_lantern(
     save_folder: str = "rsoft_data_files",
     hide_sim: bool = True,
     final_capillary_id: float = 25,
+    num_grid: int = 200,
+    ref_folder_name: str = "ideal_modes",
+    ref_prefix: str = "ref_LP",
     **additional_params: Any,
 ) -> float:
     """
@@ -314,10 +316,9 @@ def build_and_simulate_lantern(
         taper_length=taper_length,
         sim_type=sim_type,
         final_capillary_id=final_capillary_id,
+        num_grid=num_grid,
         **additional_params,
     )
-
-    # Build ideal output
 
     # Run simulation
     results = run_simulation(
@@ -336,8 +337,8 @@ def build_and_simulate_lantern(
         expt_dir=expt_dir,
         input_dir=save_folder,
         input_file_prefix=f"{run_name}_ex",
-        ref_dir="ref_mode_profile",
-        ref_file_prefix="femsim_result_ex",
+        ref_dir=ref_folder_name,
+        ref_file_prefix=ref_prefix,
         num_modes=12,
     )
     logger.info(f"Overlap integral: {overlap_val:.4f}")
