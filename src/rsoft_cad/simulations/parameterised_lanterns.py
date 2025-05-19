@@ -43,7 +43,7 @@ def make_parameterised_lantern(
     final_capillary_id: float = 40,
     num_points: int = 100,
     num_grid: int = 200,
-    num_pads: int = 20,
+    num_pads: int = 50,
     sort_neff: int = 1,  # [0=none, 1=highest, 2=lowest]
 ) -> tuple[str, str, dict[str, tuple[float, float]]]:
     """
@@ -165,7 +165,7 @@ def make_parameterised_lantern(
     logger.debug(f"Grid sizes calculated: x={grid_size_x}, y={grid_size_y}")
 
     # some glitch in the software, lantern is not centered, have to pad it to prevent clipping
-    boundary_min_y -= (num_pads + 10) * grid_size_y
+    boundary_min_y -= int(num_pads * 1.5) * grid_size_y
     boundary_max_y += num_pads * grid_size_y
     boundary_min -= num_pads * grid_size_x
     boundary_max += num_pads * grid_size_x
