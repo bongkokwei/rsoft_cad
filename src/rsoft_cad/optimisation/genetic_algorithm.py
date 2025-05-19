@@ -203,7 +203,7 @@ def genetic_algorithm(
 
     # Build ideal output
     ref_folder_name = "ideal_modes"
-    ref_prefix = ("ref_LP",)
+    ref_prefix = "ref_LP"
 
     lp_dir = os.path.join(data_dir, expt_dir, ref_folder_name)
     generate_and_write_lp_modes(
