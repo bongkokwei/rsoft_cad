@@ -275,6 +275,7 @@ def build_and_simulate_lantern(
     data_dir: str = "output",
     save_folder: str = "rsoft_data_files",
     hide_sim: bool = True,
+    final_capillary_id: float = 25,
     **additional_params: Any,
 ) -> float:
     """
@@ -312,8 +313,11 @@ def build_and_simulate_lantern(
         taper_factor=taper_factor,
         taper_length=taper_length,
         sim_type=sim_type,
+        final_capillary_id=final_capillary_id,
         **additional_params,
     )
+
+    # Build ref model here:
 
     # Run simulation
     results = run_simulation(

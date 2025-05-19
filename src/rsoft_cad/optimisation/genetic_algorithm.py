@@ -43,7 +43,7 @@ def calculate_fitness(
     taper_profile: str = None,  # Added taper_profile parameter
     mode_output: str = "OUTPUT_REAL_IMAG",
     domain_min: float = 50000,
-    final_capillary_id: float = 40,
+    final_capillary_id: float = 25,
 ) -> float:
     """
     Calculate the fitness (overlap) of an individual.
@@ -163,7 +163,7 @@ def genetic_algorithm(
     taper_profile: str = None,  # Added taper_profile parameter
     mode_output: str = "OUTPUT_REAL_IMAG",
     domain_min: float = 50000,
-    final_capillary_id: float = 40,
+    final_capillary_id: float = 25,
 ) -> Tuple[List[int], float]:
     """
     Perform a genetic algorithm to optimize fiber indices for maximum overlap.
@@ -212,6 +212,7 @@ def genetic_algorithm(
                 taper_profile=taper_profile,
                 mode_output=mode_output,
                 domain_min=domain_min,
+                final_capillary_id=final_capillary_id,
             )
             for individual in population
         ]
