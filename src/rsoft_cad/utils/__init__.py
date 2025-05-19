@@ -6,6 +6,14 @@ RSoft CAD Utilities
 This package provides utilities for working with RSoft CAD files,
 creating and manipulating photonic lantern layouts, and visualizing data.
 """
+from .lp_modes import generate_lp_mode
+
+from .mode_utils import (
+    get_modes_below_cutoff,
+    group_modes_by_radial_number,
+    find_segment_by_comp_name,
+    interpolate_taper_value,
+)
 
 # Import lantern layout functions
 from .fiber_layout.circular import lantern_layout, find_scale_factor
@@ -42,7 +50,6 @@ from .rsoft_file_io.filesystem import (
     copy_files_by_extension,
 )
 
-from .lp_modes import generate_lp_mode
 
 # Import config functions
 from .config.modifier import (
@@ -51,12 +58,6 @@ from .config.modifier import (
     modify_parameter,
 )
 
-from .mode_utils import (
-    get_modes_below_cutoff,
-    group_modes_by_radial_number,
-    find_segment_by_comp_name,
-    interpolate_taper_value,
-)
 
 # Version information
 __version__ = "0.1.0"
