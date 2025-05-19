@@ -318,7 +318,7 @@ if __name__ == "__main__":
         expt_dir=expt_dir,
         highest_mode="LP02",
         mode_output="OUTPUT_REAL_IMAG",
-        final_capillary_id=40,  # micron
+        final_capillary_id=25,  # micron
     )
 
     print("\n--- Final Results ---")
