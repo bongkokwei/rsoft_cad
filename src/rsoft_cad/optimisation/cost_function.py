@@ -65,7 +65,9 @@ def overlap_integral(
         # Raise an exception with details about the error
         error_msg = f"Command '{' '.join(args)}' failed with return code {results.returncode}.\nError: {results.stderr}"
         logger.error(error_msg)
-        raise RuntimeError(error_msg)
+        replace_stdout = "Overlap Integral (re im) = 0.0 0\n|Overlap Integral| = 0.00\n|Overlap Integral|^2 = 0.00\n"
+        results.stdout = replace_stdout
+        return process_results(results)
 
 
 def process_results(
