@@ -37,37 +37,46 @@ pip install -e .
 
 ## Core Modules
 
-### Configuration Management
-- `utils/config/modifier.py`: Utilities for modifying configuration files
-- Supports dynamic parameter changes
-- Enables easy exploration of design parameters
+### Core Functionality
+- Multi-core fibre and photonic lantern design
+- Mode selective lantern (MSL) generation
+- Flexible configuration management
+- Simulation file generation for RSoft CAD
+- Geometric layout visualisation
+- Parametric design exploration
+- Advanced mode analysis
 
-### Fibre and Lantern Design
-- `rsoft_mspl.py`: Mode Selective Photonic Lantern (MSPL) generator
-- Supports multiple LP mode configurations
-- Automatic mode mapping and positioning
+### Layout Options
+- Hexagonal and circular fibre layouts
+- Customisable fibre parameters
+- Automated lantern geometry calculations
+- Flexible core diameter and refractive index settings
+- Multiple LP mode support (LP01, LP11, LP21, LP02, etc.)
 
-### Simulation Utilities
-- `rsoft_simulations.py`: Handles simulation file generation and execution
-- `beamprop`: Tools for BeamPROP simulation and analysis
-- `femsim`: Tools for FemSIM simulation and analysis
-
-### Utilities
-- `utils/lantern`: Functions for lantern layout calculations (circular and hexagonal)
-- `utils/visualisation`: Plotting and visualisation tools
-- `utils/io`: Functions for reading and writing simulation data
-
-## Design Principles
-
-### Mode Selection
-- Supports multiple LP modes (LP01, LP11, LP21, LP02, etc.)
+### Simulation Capabilities
+- Simulation file generation for BeamPROP and FemSIM
+- Effective refractive index calculation and analysis
+- Mode coupling analysis
 - Automatic mode cutoff frequency management
-- Flexible core diameter and index configuration
+- Field propagation modelling
 
-### Geometric Layout
-- Hexagonal and circular fibre arrangements
-- Automatic capillary diameter calculation
-- Precise mode positioning algorithms
+### Optimisation
+- Taper length optimisation algorithms
+- Parameter sweep functionality
+- Outlier detection and filtering for data processing
+- Finding optimal configurations for mode coupling
+
+### Analysis Tools
+- Enhanced visualisation for field distributions
+- Effective index analysis plots
+- Parameter sweep results visualisation
+- Data export capabilities for various formats
+- Result processing utilities
+
+### Interface Options
+- Command-line interface for complex simulations
+- Python API for script-based automation
+- Configuration file management
 
 ## Example Usage
 
@@ -196,12 +205,20 @@ plt.show()
 Alternatively, we can simulate, plot and analyse effective indices using the command-line interface
 
 ```bash
-# Command-line usage
-python -c "from rsoft_cad.femsim import femsimulation; femsimulation()" --taper-factors 18.75 --taper-length 40000 --num-grids 200 --num-points 200 
---mode-output OUTPUT_NONE
-
-python -c "from rsoft_cad.femsim import nef_plot; nef_plot()" --folder-path femsim_run_001 --plot-type real --fit-data --fit-function
+# Run FemSIM simulation
+python -c "from rsoft_cad.femsim import femsimulation; femsimulation()" \
+    --taper-factors 18.75 \
+    --taper-length 40000 \
+    --num-grids 200 \
+    --num-points 200 \
+    --mode-output OUTPUT_NONE
+# Plot effective indices
+python -c "from rsoft_cad.femsim import nef_plot; nef_plot()" \
+    --folder-path femsim_run_001 \
+    --plot-type real \
+    --fit-data
 ```
+
 ## Visualisation
 
 The toolkit provides visualisation utilities:
