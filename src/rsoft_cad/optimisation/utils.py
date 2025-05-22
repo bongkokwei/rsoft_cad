@@ -180,7 +180,7 @@ def build_parameterised_lantern(
         taper_file_path_rsoft = os.path.join(
             data_dir,
             expt_dir,
-            "rsoft_data_files",
+            save_folder,
             taper_file_name,
         )
 
@@ -278,6 +278,7 @@ def build_and_simulate_lantern(
     num_grid: int = 200,
     ref_folder_name: str = "ideal_modes",
     ref_prefix: str = "ref_LP",
+    manual_mode: bool = False,
     **additional_params: Any,
 ) -> float:
     """
@@ -329,18 +330,20 @@ def build_and_simulate_lantern(
         save_folder=save_folder,
         hide_sim=hide_sim,
     )
-
-    # Calculate and return the overlap error
-    logger.info(f"Calculating overlap integral")
-    overlap_val = calculate_overlap_all_modes(
-        data_dir=data_dir,
-        expt_dir=expt_dir,
-        input_dir=save_folder,
-        input_file_prefix=f"{run_name}_ex",
-        ref_dir=ref_folder_name,
-        ref_file_prefix=ref_prefix,
-        num_modes=12,
-    )
-    logger.info(f"Overlap integral: {overlap_val:.4f}")
+    if not manual_mode:
+        # Calculate and return the overlap error
+        logger.info(f"Calculating overlap integral")
+        overlap_val = calculate_overlap_all_modes(
+            data_dir=data_dir,
+            expt_dir=expt_dir,
+            input_dir=save_folder,
+            input_file_prefix=f"{run_name}_ex",
+            ref_dir=ref_folder_name,
+            ref_file_prefix=ref_prefix,
+            num_modes=12,
+        )
+        logger.info(f"Overlap integral: {overlap_val:.4f}")
+    else:
+        overlap_val = 0
 
     return overlap_val
