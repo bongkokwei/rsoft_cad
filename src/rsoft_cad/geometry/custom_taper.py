@@ -448,50 +448,6 @@ def plot_combined_taper(model, num_cross_sections=6, figsize=(15, 6)):
     return fig
 
 
-if __name__ == "__main__":
-    """7 cores configuration"""
-    layers_config_7_fibers = [(1, 0), (5, 2)]
-    core_map_7_fibers = model_photonic_lantern_taper(
-        z_points=200,
-        taper_length=50,
-        initial_diameter=125,
-        final_core_diameter=20,
-        capillary_id=375,
-        capillary_od=900,
-        layers_config=layers_config_7_fibers,
-    )
-
-    # Plot the combined figure for the 7-fiber case
-    fig_combined_7 = plot_combined_taper(core_map_7_fibers)
-
-    """ 3 cores configuration """
-    layers_config_3_fibers = [(3, 1.0)]
-    core_map_3_fibers = model_photonic_lantern_taper(
-        z_points=200,
-        taper_length=50,
-        initial_diameter=125,
-        final_core_diameter=20,
-        capillary_id=275,
-        capillary_od=900,
-        layers_config=layers_config_3_fibers,
-    )
-
-    # Plot the combined figure for the 3-fiber case
-    fig_combined_3 = plot_combined_taper(core_map_3_fibers)
-
-    """ Plot taper ratio along normalised length """
-    fig_taper, ax_taper = plt.subplots(1, 1, figsize=(15, 6))
-    z = np.linspace(0, 1, 100)
-    taper_ratio = 1 - sigmoid_taper_ratio(z, taper_length=1)
-    ax_taper.plot(z, taper_ratio)
-    ax_taper.grid(True)
-    ax_taper.set_xlabel("Normalised z-dir")
-    ax_taper.set_ylabel("Taper ratio (arb units)")
-    ax_taper.set_title("Taper Ratio Profile")
-
-    plt.show()
-
-
 def create_custom_taper_profile(
     data_dir,
     expt_dir,
@@ -556,6 +512,11 @@ def create_custom_taper_profile(
     # Prepare save location
     save_to = os.path.join(data_dir, expt_dir)
 
+    # Create folder if it does not exist
+    if not os.path.exists(save_to):
+        print(f"Creating folder: {save_to}")
+        os.makedirs(save_to)
+
     # Save to main directory
     np.savetxt(
         os.path.join(save_to, file_name),
@@ -579,3 +540,47 @@ def create_custom_taper_profile(
         )
 
     return z, taper_ratios
+
+
+if __name__ == "__main__":
+    """7 cores configuration"""
+    layers_config_7_fibers = [(1, 0), (5, 2)]
+    core_map_7_fibers = model_photonic_lantern_taper(
+        z_points=200,
+        taper_length=50,
+        initial_diameter=125,
+        final_core_diameter=20,
+        capillary_id=375,
+        capillary_od=900,
+        layers_config=layers_config_7_fibers,
+    )
+
+    # Plot the combined figure for the 7-fiber case
+    fig_combined_7 = plot_combined_taper(core_map_7_fibers)
+
+    """ 3 cores configuration """
+    layers_config_3_fibers = [(3, 1.0)]
+    core_map_3_fibers = model_photonic_lantern_taper(
+        z_points=200,
+        taper_length=50,
+        initial_diameter=125,
+        final_core_diameter=20,
+        capillary_id=275,
+        capillary_od=900,
+        layers_config=layers_config_3_fibers,
+    )
+
+    # Plot the combined figure for the 3-fiber case
+    fig_combined_3 = plot_combined_taper(core_map_3_fibers)
+
+    """ Plot taper ratio along normalised length """
+    fig_taper, ax_taper = plt.subplots(1, 1, figsize=(15, 6))
+    z = np.linspace(0, 1, 100)
+    taper_ratio = 1 - sigmoid_taper_ratio(z, taper_length=1)
+    ax_taper.plot(z, taper_ratio)
+    ax_taper.grid(True)
+    ax_taper.set_xlabel("Normalised z-dir")
+    ax_taper.set_ylabel("Taper ratio (arb units)")
+    ax_taper.set_title("Taper Ratio Profile")
+
+    plt.show()
