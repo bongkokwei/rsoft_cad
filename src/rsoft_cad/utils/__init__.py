@@ -27,6 +27,7 @@ from .fiber_layout.visualise_layout import (
 )
 from .rsoft_file_plot.field_plots import plot_field_data
 from .rsoft_file_plot.monitor_plots import plot_mon_data
+from .rsoft_file_plot.combined_field_plots import visualise_modes
 
 # Import I/O functions
 from .rsoft_file_io.readers import (
