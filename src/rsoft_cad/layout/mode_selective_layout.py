@@ -309,7 +309,7 @@ def create_indexed_core_map(layer_config, cladding_dia):
     # Iterate through each layer and assign indices to coordinates
     for layer_coords in layer_centres:
         for coord in layer_coords:
-            core_map[current_index] = coord
+            core_map[f"{current_index}"] = coord
             current_index += 1
 
     return core_map, cap_dia
