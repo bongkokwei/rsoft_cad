@@ -14,6 +14,8 @@ The script generates a sigmoid taper ratio along the z-axis and applies it to th
 cladding, and cap of the photonic lantern. The simulation is configured for LP01 to LP02
 mode conversion with Gaussian launch conditions.
 
+TODO: make it more generalised, right now anything more than 6 is kaput.
+
 Dependencies:
 - rsoft_cad: Package for RSoft CAD simulations
 - numpy: For numerical operations
