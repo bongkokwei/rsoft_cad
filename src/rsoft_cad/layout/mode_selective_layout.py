@@ -269,3 +269,47 @@ def create_core_map(lp_mode_str, cladding_dia):
                 coord_index += 1
 
     return core_map, cap_dia
+
+
+def create_indexed_core_map(layer_config, cladding_dia):
+    """
+    Creates a mapping between simple indices and their physical coordinates in the fiber.
+
+    This function:
+    1. Uses the provided layer configuration directly
+    2. Creates coordinates for each layer using multilayer_lantern_layout
+    3. Returns a dictionary where:
+       - Keys are simple integer indices (0, 1, 2, ...)
+       - Values are single (x,y) coordinate tuples
+
+    Args:
+        layer_config (list): List of tuples (num_circles, scale_factor) for each layer
+        cladding_dia (float): Cladding diameter in microns
+
+    Returns:
+        tuple: (core_map, cap_dia) where:
+            core_map (dict): Mapping of integer indices to their coordinate tuples
+            cap_dia (float): Diameter of the capillary
+    """
+    # Get the coordinates for each layer using the provided configuration
+    layer_centres, layer_radii = multilayer_lantern_layout(
+        cladding_dia,
+        layer_config,
+    )
+
+    # Calculate capillary diameter
+    cap_dia = (
+        2 * layer_radii[-1] + cladding_dia if layer_radii.size > 0 else cladding_dia
+    )
+
+    # Create the core map dictionary with simple integer indices
+    core_map = {}
+    current_index = 0
+
+    # Iterate through each layer and assign indices to coordinates
+    for layer_coords in layer_centres:
+        for coord in layer_coords:
+            core_map[current_index] = coord
+            current_index += 1
+
+    return core_map, cap_dia
