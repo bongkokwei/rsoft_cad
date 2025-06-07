@@ -17,7 +17,6 @@ from rsoft_cad.constants import SINGLE_MODE_FIBERS
 from rsoft_cad import configure_logging
 from rsoft_cad.geometry import create_custom_taper_profile
 from rsoft_cad import LaunchType, TaperType
-from rsoft_cad.optimisation.cost_function import calculate_overlap_all_modes
 from rsoft_cad.utils import get_fiber_type_list_by_indices, fiber_assignment
 
 
@@ -240,6 +239,8 @@ def build_and_simulate_lantern(
         hide_sim=hide_sim,
     )
     if not manual_mode:
+        from rsoft_cad.optimisation.cost_function import calculate_overlap_all_modes
+
         # Calculate and return the overlap error
         logger.info(f"Calculating overlap integral")
         overlap_val = calculate_overlap_all_modes(
