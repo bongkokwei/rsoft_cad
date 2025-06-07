@@ -1,1 +1,2 @@
 from .parameterised_lanterns import make_parameterised_lantern
+from .constuction import build_parameterised_lantern, build_and_simulate_lantern
