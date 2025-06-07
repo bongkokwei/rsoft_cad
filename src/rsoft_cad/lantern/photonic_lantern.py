@@ -144,6 +144,9 @@ class PhotonicLantern(BaseLantern):
             self.fiber_config.set_core_dia(core_dia_dict)
             # Update core_diameters for the model to use the same values
             core_diameters = core_dia_dict
+        else:
+            core_diameters = {fiber_name: 10.4 for fiber_name in core_map.keys()}
+            self.fiber_config.set_core_dia(core_diameters)
 
         if cladding_dia_dict is not None:
             self.fiber_config.set_cladding_dia(cladding_dia_dict)
@@ -286,6 +289,7 @@ if __name__ == "__main__":
         (6, 1.0),  # First ring: 6 circles
         (12, 1.0),  # Second ring: 12 circles
     ]
+
     core_map = pl.create_lantern(
         layer_config=example_config,
         launch_mode="0",
