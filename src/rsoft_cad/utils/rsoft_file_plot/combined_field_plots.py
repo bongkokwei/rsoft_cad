@@ -1,5 +1,4 @@
-from rsoft_cad.utils.rsoft_file_io.readers import read_field_data
-from rsoft_cad.optimisation.cost_function import delete_files_except
+from rsoft_cad.utils import delete_files_except, read_field_data
 import matplotlib.pyplot as plt
 import numpy as np
 import os
