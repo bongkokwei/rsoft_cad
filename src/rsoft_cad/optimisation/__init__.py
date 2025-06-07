@@ -6,11 +6,6 @@ This package provides utilities for working with optimisating photonic lantern l
 """
 
 from rsoft_cad.optimisation.genetic_algorithm import genetic_algorithm
-from rsoft_cad.optimisation.utils import (
-    build_parameterised_lantern,
-    build_and_simulate_lantern,
-)
-
 from rsoft_cad.optimisation.cost_function import (
     calculate_overlap_all_modes,
     delete_files_except,

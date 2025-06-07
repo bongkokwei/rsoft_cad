@@ -9,6 +9,7 @@ from functools import partial
 from typing import Dict, Union, Any, Optional
 
 from rsoft_cad import configure_logging
+from rsoft_cad.utils import delete_files_except
 
 
 def overlap_integral(
@@ -109,70 +110,6 @@ def process_results(
 
     logger.debug(f"Processed overlap results: {overlap_dict}")
     return overlap_dict
-
-
-def delete_files_except(
-    folder_path,
-    match_string=None,
-    files_to_keep=None,
-):
-    """
-    Delete all files in a folder except those that contain a specific string
-    or are in the list of files to keep.
-
-    Args:
-        folder_path (str): Path to the folder containing files
-        match_string (str, optional): Files containing this string will be kept
-        files_to_keep (list, optional): List of specific filenames to keep
-    """
-    logger = logging.getLogger(__name__)
-
-    if files_to_keep is None:
-        files_to_keep = []
-
-    # Ensure folder path exists
-    if not os.path.exists(folder_path):
-        logger.error(f"Folder '{folder_path}' does not exist.")
-        return
-
-    # Get list of all files in the folder
-    files = [
-        f
-        for f in os.listdir(folder_path)
-        if os.path.isfile(os.path.join(folder_path, f))
-    ]
-
-    # Counter for deleted files
-    deleted_count = 0
-
-    logger.info(f"Cleaning directory: {folder_path}")
-    logger.debug(f"Keeping files with pattern: {match_string}")
-    logger.debug(f"Keeping specific files: {files_to_keep}")
-
-    # Process each file
-    for file in files:
-        # Check if file should be kept
-        keep_file = False
-
-        # Check if file contains the match string
-        if match_string and match_string in file:
-            keep_file = True
-
-        # Check if file is in the list of files to keep
-        if file in files_to_keep:
-            keep_file = True
-
-        # Delete file if it doesn't meet the criteria to keep
-        if not keep_file:
-            file_path = os.path.join(folder_path, file)
-            try:
-                os.remove(file_path)
-                logger.debug(f"Deleted: {file}")
-                deleted_count += 1
-            except Exception as e:
-                logger.error(f"Error deleting {file}: {e}")
-
-    logger.info(f"Total files deleted: {deleted_count}")
 
 
 def calculate_overlap_all_modes(

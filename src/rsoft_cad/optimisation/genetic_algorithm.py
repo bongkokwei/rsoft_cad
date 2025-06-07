@@ -8,7 +8,7 @@ from typing import List, Tuple
 from rsoft_cad.constants import SINGLE_MODE_FIBERS
 from rsoft_cad import configure_logging
 from rsoft_cad.utils import get_next_run_folder
-from rsoft_cad.optimisation.utils import build_and_simulate_lantern
+from rsoft_cad.simulations import build_and_simulate_lantern
 from rsoft_cad.utils import generate_and_write_lp_modes
 
 
