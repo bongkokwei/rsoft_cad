@@ -1,15 +1,51 @@
+"""
+Photonic Lantern Simulation Script
+
+This script performs a photonic lantern simulation using RSoft CAD software.
+A photonic lantern is a device that couples light between a multimode fiber
+and multiple single-mode fibers through an adiabatic taper transition.
+
+The simulation builds and analyzes a lantern configuration with specified
+single-mode fibers, simulates mode propagation, and visualizes the results.
+
+
+Dependencies:
+    - pandas: For data manipulation and analysis
+    - rsoft_cad: Custom RSoft CAD interface library
+    - matplotlib: For visualization (used by visualise_modes)
+
+
+Output:
+    - Simulation data files in the specified output directory
+    - Mode visualization plots
+    - Console output showing selected fiber types
+"""
+
 import pandas as pd
 
-from rsoft_cad.optimisation import (
-    build_and_simulate_lantern,
-    build_parameterised_lantern,
-)
+from rsoft_cad.simulations import build_and_simulate_lantern
 from rsoft_cad.constants import SINGLE_MODE_FIBERS
-from rsoft_cad.optimisation.utils import get_fiber_type_list_by_indices
-from rsoft_cad.utils import get_next_run_folder, visualise_modes
+from rsoft_cad.utils import (
+    get_next_run_folder,
+    get_fiber_type_list_by_indices,
+    visualise_modes,
+)
 
 data_dir = "output"
 expt_dir = get_next_run_folder("output", "best_config_run_")
+
+"""
+Fiber selection strategy (largest to smallest core diameter):
+Index mapping to fiber types:
+    1: LEAF (9.6 μm core)
+    2: OS2 (8.5 μm core) 
+    9: Allwave (8.4 μm core)
+    8: SMF-28e+ (8.3 μm core)
+    0: SMF-28 (8.2 μm core)
+    6: G.657.A2 (8.0 μm core)
+    5: G.655 (7.8 μm core)
+    3: TrueWave RS (7.5 μm core)
+"""
 fiber_indices = [1, 2, 2, 9, 9, 8, 0, 0]
 
 build_and_simulate_lantern(
