@@ -5,11 +5,10 @@ import json
 import logging
 import matplotlib.pyplot as plt
 from functools import partial
+from typing import Union, List, Dict, Tuple, Any, Optional
 
 # Import custom modules
-from rsoft_cad.lantern import ModeSelectiveLantern
-
-# from rsoft_cad.rsoft_mspl import ModeSelectiveLantern
+from rsoft_cad.lantern import ModeSelectiveLantern, PhotonicLantern
 from rsoft_cad.rsoft_simulations import run_simulation
 from rsoft_cad.utils import interpolate_taper_value
 from rsoft_cad.geometry import calculate_taper_properties
@@ -17,45 +16,53 @@ from rsoft_cad import LaunchType, MonitorType, TaperType
 
 
 def make_parameterised_lantern(
+    lantern_type: str = "mode_selective",
+    # Mode Selective Lantern parameters
     highest_mode: str = "LP02",
-    launch_mode: str | list[str] = "LP01",
+    # Photonic Lantern parameters
+    layer_config: Optional[List[Tuple[int, float]]] = None,
+    # Common parameters
+    launch_mode: Union[str, List[str]] = "LP01",
     opt_name: str = "run_000",
     taper_factor: float = 21,
     taper_length: float = 80000,
     sim_type: str = "breamprop",
     femnev: int = 1,
     save_neff: bool = True,
-    step_x: float | None = None,
-    step_y: float | None = None,
+    step_x: Optional[float] = None,
+    step_y: Optional[float] = None,
     domain_min: float = 0,
     data_dir: str = "output",
     expt_dir: str = "pl_property_scan",
     mode_output: str = "OUTPUT_REAL_IMAG",
-    core_dia_dict: dict[str, float] | None = None,
-    cladding_dia_dict: dict[str, float] | None = None,
-    bg_index_dict: dict[str, float] | None = None,
-    cladding_index_dict: dict[str, float] | None = None,
-    core_index_dict: dict[str, float] | None = None,
+    core_dia_dict: Optional[Dict[str, float]] = None,
+    cladding_dia_dict: Optional[Dict[str, float]] = None,
+    bg_index_dict: Optional[Dict[str, float]] = None,
+    cladding_index_dict: Optional[Dict[str, float]] = None,
+    core_index_dict: Optional[Dict[str, float]] = None,
     monitor_type: MonitorType = MonitorType.FIBER_POWER,
     launch_type: LaunchType = LaunchType.GAUSSIAN,
-    taper_config: TaperType | dict[str, TaperType] = TaperType.linear(),
+    taper_config: Union[TaperType, Dict[str, TaperType]] = TaperType.linear(),
     capillary_od: float = 900,
     final_capillary_id: float = 40,
     num_points: int = 100,
     num_grid: int = 200,
     num_pads: int = 50,
     sort_neff: int = 1,  # [0=none, 1=highest, 2=lowest]
-) -> tuple[str, str, dict[str, tuple[float, float]]]:
+) -> Tuple[str, str, Dict[str, Tuple[float, float]]]:
     """
     Create a parameterised photonic lantern configuration with specified properties.
 
-    This function creates a Mode Selective Photonic Lantern (MSPL) with given parameters,
-    configures the simulation environment, writes the design file, and saves the configuration
-    parameters for reproducibility.
+    This function creates either a Mode Selective Photonic Lantern (MSPL) or a standard
+    Photonic Lantern with given parameters, configures the simulation environment,
+    writes the design file, and saves the configuration parameters for reproducibility.
 
     Args:
-        highest_mode (str): The highest LP mode to support (default: "LP02")
-        launch_mode (str | list[str]): The mode(s) to launch from (default: "LP01")
+        lantern_type (str): Type of lantern to create. Options: "mode_selective" or "photonic" (default: "mode_selective")
+        highest_mode (str): The highest LP mode to support (for mode_selective lantern) (default: "LP02")
+        layer_config (List[Tuple[int, float]] | None): List of tuples (num_circles, scale_factor)
+                                                      for each layer (for photonic lantern) (default: None)
+        launch_mode (str | List[str]): The mode(s) to launch from (default: "LP01")
         opt_name (str): Name identifier for the run (default: "run_000")
         taper_factor (float): The factor by which the fibers are tapered (default: 21)
         taper_length (float): The length of the taper in microns (default: 80000)
@@ -67,33 +74,39 @@ def make_parameterised_lantern(
         domain_min (float): Minimum domain boundary in microns (default: 0)
         data_dir (str): Parent directory for outputs (default: "output")
         expt_dir (str): Sub-directory for experiment outputs (default: "pl_property_scan")
-        num_grid (int): Number of grid points for simulation (default: 400)
+        num_grid (int): Number of grid points for simulation (default: 200)
         mode_output (str): Output format for simulation modes (default: "OUTPUT_REAL_IMAG")
-        core_dia_dict (dict[str, float] | None): Dictionary mapping modes to core diameters (default: None)
-        cladding_dia_dict (dict[str, float] | None): Dictionary mapping modes to cladding diameters (default: None)
-        bg_index_dict (dict[str, float] | None): Dictionary mapping modes to background indices (default: None)
-        cladding_index_dict (dict[str, float] | None): Dictionary mapping modes to cladding indices (default: None)
-        core_index_dict (dict[str, float] | None): Dictionary mapping modes to core indices (default: None)
+        core_dia_dict (Dict[str, float] | None): Dictionary mapping modes to core diameters (default: None)
+        cladding_dia_dict (Dict[str, float] | None): Dictionary mapping modes to cladding diameters (default: None)
+        bg_index_dict (Dict[str, float] | None): Dictionary mapping modes to background indices (default: None)
+        cladding_index_dict (Dict[str, float] | None): Dictionary mapping modes to cladding indices (default: None)
+        core_index_dict (Dict[str, float] | None): Dictionary mapping modes to core indices (default: None)
         monitor_type: Type of monitor to add to each pathway. Defaults to FIBER_POWER.
-        taper_type: Taper profile to use if tapering is applied. Defaults to LINEAR.
+        taper_config: Taper profile to use if tapering is applied. Defaults to LINEAR.
         launch_type: Type of field distribution to launch. Defaults to GAUSSIAN.
-
+        capillary_od (float): Outer diameter of the capillary in microns (default: 900)
+        final_capillary_id (float): Final inner diameter of the capillary after tapering in microns (default: 40)
+        num_points (int): Number of points along z-axis for model discretization (default: 100)
+        num_pads (int): Number of padding grid points (default: 50)
+        sort_neff (int): Eigenmode sorting option [0=none, 1=highest, 2=lowest] (default: 1)
 
     Returns:
-        tuple[str, str, dict[str, tuple[float, float]]]: A tuple containing:
+        Tuple[str, str, Dict[str, Tuple[float, float]]]: A tuple containing:
             - filepath (str): Path to the directory containing the generated design file
             - file_name (str): Name of the generated design file
-            - core_map (dict[str, tuple[float, float]]): Mapping of modes to their spatial coordinates
+            - core_map (Dict[str, Tuple[float, float]]): Mapping of modes to their spatial coordinates
 
     Raises:
-        ValueError: If an invalid simulation type is provided
+        ValueError: If an invalid simulation type or lantern type is provided
+        ValueError: If required parameters for the selected lantern type are missing
     """
 
     # Set up logger
     logger = logging.getLogger(__name__)
 
-    logger.info(f"Creating parameterised lantern with name: {opt_name}")
+    logger.info(f"Creating parameterised {lantern_type} lantern with name: {opt_name}")
 
+    # Validate simulation type
     if sim_type == "beamprop":
         sim_string = "ST_BEAMPROP"
     elif sim_type == "femsim":
@@ -106,47 +119,95 @@ def make_parameterised_lantern(
             f"Invalid simulation type: {sim_type}. Expected 'femsim' or 'beamprop'."
         )
 
-    # Create Mode Selective Photonic Lantern instance
-    mspl = ModeSelectiveLantern()
-    logger.debug("Created ModeSelectiveLantern instance")
+    # Validate lantern type and create appropriate instance
+    if lantern_type.lower() == "mode_selective":
+        lantern = ModeSelectiveLantern()
+        logger.debug("Created ModeSelectiveLantern instance")
 
-    # Create lantern without writing to design file
-    logger.debug(
-        f"Creating lantern with highest_mode={highest_mode}, launch_mode={launch_mode}"
-    )
-    core_map = mspl.create_lantern(
-        highest_mode=highest_mode,
-        launch_mode=launch_mode,
-        opt_name=opt_name,
-        savefile=False,  # Hold off on saving design file
-        taper_factor=taper_factor,
-        taper_length=taper_length,
-        core_dia_dict=core_dia_dict,
-        cladding_dia_dict=cladding_dia_dict,
-        bg_index_dict=bg_index_dict,
-        cladding_index_dict=cladding_index_dict,
-        core_index_dict=core_index_dict,
-        monitor_type=monitor_type,
-        launch_type=launch_type,
-        taper_config=taper_config,
-        capillary_od=capillary_od,
-        final_capillary_id=final_capillary_id,
-        num_points=num_points,
-    )
+        # Create lantern without writing to design file
+        logger.debug(
+            f"Creating mode selective lantern with highest_mode={highest_mode}, launch_mode={launch_mode}"
+        )
+        core_map = lantern.create_lantern(
+            highest_mode=highest_mode,
+            launch_mode=launch_mode,
+            opt_name=opt_name,
+            savefile=False,  # Hold off on saving design file
+            taper_factor=taper_factor,
+            taper_length=taper_length,
+            core_dia_dict=core_dia_dict,
+            cladding_dia_dict=cladding_dia_dict,
+            bg_index_dict=bg_index_dict,
+            cladding_index_dict=cladding_index_dict,
+            core_index_dict=core_index_dict,
+            monitor_type=monitor_type,
+            launch_type=launch_type,
+            taper_config=taper_config,
+            capillary_od=capillary_od,
+            final_capillary_id=final_capillary_id,
+            num_points=num_points,
+        )
+
+    elif lantern_type.lower() == "photonic":
+        if layer_config is None:
+            logger.error("layer_config is required for photonic lantern type")
+            raise ValueError("layer_config is required for photonic lantern type")
+
+        lantern = PhotonicLantern()
+        logger.debug("Created PhotonicLantern instance")
+
+        # For photonic lantern, launch_mode default should be "0" if it's still "LP01"
+        if launch_mode == "LP01":
+            launch_mode = "0"
+            logger.debug("Changed launch_mode from 'LP01' to '0' for photonic lantern")
+
+        # Create lantern without writing to design file
+        logger.debug(
+            f"Creating photonic lantern with layer_config={layer_config}, launch_mode={launch_mode}"
+        )
+        core_map = lantern.create_lantern(
+            layer_config=layer_config,
+            launch_mode=launch_mode,
+            opt_name=opt_name,
+            savefile=False,  # Hold off on saving design file
+            taper_factor=taper_factor,
+            taper_length=taper_length,
+            core_diameters=core_dia_dict,  # Note: different parameter name for photonic lantern
+            core_dia_dict=core_dia_dict,
+            cladding_dia_dict=cladding_dia_dict,
+            bg_index_dict=bg_index_dict,
+            cladding_index_dict=cladding_index_dict,
+            core_index_dict=core_index_dict,
+            monitor_type=monitor_type,
+            launch_type=launch_type,
+            taper_config=taper_config,
+            capillary_od=capillary_od,
+            final_capillary_id=final_capillary_id,
+            num_points=num_points,
+        )
+
+    else:
+        logger.error(
+            f"Invalid lantern type: {lantern_type}. Expected 'mode_selective' or 'photonic'."
+        )
+        raise ValueError(
+            f"Invalid lantern type: {lantern_type}. Expected 'mode_selective' or 'photonic'."
+        )
+
     logger.debug(f"Lantern created with {len(core_map)} cores")
 
     # Calculate simulation boundaries based on capillary diameter
     if taper_factor > 1:  # backwards compatibility
         (dia_at_pos, _, taper_factor, _) = calculate_taper_properties(
             position=domain_min,
-            start_dia=mspl.cap_dia,
+            start_dia=lantern.cap_dia,
             end_dia=None,
             taper_factor=taper_factor,
             taper_length=taper_length,
         )
     else:
         dia_at_pos = interpolate_taper_value(
-            mspl.model,
+            lantern.model,
             "capillary_inner_diameter",
             z_pos=domain_min,
         )
@@ -200,19 +261,23 @@ def make_parameterised_lantern(
     }
 
     # Update global simulation parameters
-    mspl.update_global_params(**sim_params)
+    lantern.update_global_params(**sim_params)
 
     # Generate filename
-    file_name = f"{sim_type}_{mspl.design_filename}"
+    file_name = f"{sim_type}_{lantern.design_filename}"
     filepath = os.path.join(data_dir, expt_dir)
     design_filename = os.path.join(filepath, file_name)
 
+    # Create directory if it doesn't exist
+    os.makedirs(filepath, exist_ok=True)
+
     # Write design file
     logger.info(f"Writing design file to {design_filename}")
-    mspl.write(design_filename)
+    lantern.write(design_filename)
 
     # Save the input parameters to a file
     params = {
+        "lantern_type": lantern_type,
         "boundary_max": boundary_max,
         "boundary_min": boundary_min,
         "boundary_max_y": boundary_max_y,
@@ -220,7 +285,6 @@ def make_parameterised_lantern(
         "domain_min": domain_min,
         "grid_size": grid_size_x,
         "grid_size_y": grid_size_y,
-        "highest_mode": highest_mode,
         "launch_mode": launch_mode,
         "opt_name": opt_name,
         "taper_factor": taper_factor,
@@ -236,8 +300,14 @@ def make_parameterised_lantern(
         "num_grid": num_grid,
     }
 
+    # Add lantern-specific parameters
+    if lantern_type.lower() == "mode_selective":
+        params["highest_mode"] = highest_mode
+    elif lantern_type.lower() == "photonic":
+        params["layer_config"] = layer_config
+
     # Generate params filename
-    params_filename = os.path.join(data_dir, expt_dir, f"params.json")
+    params_filename = os.path.join(data_dir, expt_dir, f"params_{opt_name}.json")
 
     # Write parameters to file
     logger.info(f"Saving parameters to {params_filename}")
@@ -251,15 +321,17 @@ def make_parameterised_lantern(
 
 if __name__ == "__main__":
 
-    lantern = partial(
+    # Example 1: Mode Selective Lantern
+    mode_selective_lantern = partial(
         make_parameterised_lantern,
+        lantern_type="mode_selective",
         highest_mode="LP02",
         launch_mode="LP01",
-        taper_factor=1,  # final diamter of 19 micron
+        taper_factor=1,  # final diameter of 19 micron
         sim_type="femsim",
         femnev=6,
         taper_length=50000,
-        expt_dir="lantern_test",
+        expt_dir="mode_selective_test",
         taper_config={
             "core": TaperType.exponential(),
             "cladding": TaperType.exponential(),
@@ -267,4 +339,28 @@ if __name__ == "__main__":
         },
     )
 
-    lantern(domain_min=25000, opt_name="test_run")
+    mode_selective_lantern(domain_min=25000, opt_name="mspl_test_run")
+
+    # Example 2: Photonic Lantern
+    photonic_lantern = partial(
+        make_parameterised_lantern,
+        lantern_type="photonic",
+        layer_config=[
+            (1, 1.0),  # Center layer: 1 circle at center
+            (6, 1.0),  # First ring: 6 circles
+            (12, 1.0),  # Second ring: 12 circles
+        ],
+        launch_mode="0",  # Note: different default for photonic lantern
+        taper_factor=1,
+        sim_type="femsim",
+        femnev=6,
+        taper_length=50000,
+        expt_dir="photonic_test",
+        taper_config={
+            "core": TaperType.exponential(),
+            "cladding": TaperType.exponential(),
+            "cap": TaperType.exponential(),
+        },
+    )
+
+    photonic_lantern(domain_min=25000, opt_name="pl_test_run")

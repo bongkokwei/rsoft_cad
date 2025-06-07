@@ -152,8 +152,9 @@ def visualise_modes(
         figure_filename,
         dpi=dpi,
         bbox_inches="tight",
-        facecolor="#2E2E2E",
+        facecolor="none",
         edgecolor="none",
+        transparent=True,
     )
 
     # Show plot if requested
