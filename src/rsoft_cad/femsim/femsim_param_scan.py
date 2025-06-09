@@ -17,6 +17,10 @@ from rsoft_cad import (
     configure_logging,
 )  # Import the configure_logging function
 
+"""
+TODO: FORCE USERS TO ADD FIBER CORE DIAMETER DICTIONARY
+"""
+
 
 def femsim_tapered_lantern(
     expt_dir="femsim_run_000",
