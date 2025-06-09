@@ -5,7 +5,7 @@ This script performs a photonic lantern simulation using RSoft CAD software.
 A photonic lantern is a device that couples light between a multimode fiber
 and multiple single-mode fibers through an adiabatic taper transition.
 
-The simulation builds and analyzes a lantern configuration with specified
+The simulation builds and analyses a lantern configuration with specified
 single-mode fibers, simulates mode propagation, and visualizes the results.
 
 
@@ -79,20 +79,3 @@ output_file = visualise_modes(
     show_plot=True,
     cleanup_files=True,
 )
-
-
-"""
-Select fibers from biggest to smallest:
-    [
-        "1. LEAF", 9.6
-        "2. OS2", 8.5
-        "9. Allwave", 8.4
-        "8. SMF-28e+", 8.3
-        "0. SMF-28", 8.2
-        "6. G.657.A2", 8.0
-        "5. G.655", 7.8
-        "3. TrueWave RS", 7.5
-        G652D 8.3
-        7.IDF 6.0
-    ]
-"""

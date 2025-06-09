@@ -51,7 +51,8 @@ if __name__ == "__main__":
         file_name=file_name_dim,
     )
 
-    filepath, file_name, core_map = make_parameterised_lantern(
+    filepath, file_name, mspl_core_map = make_parameterised_lantern(
+        lantern_type="mode_selective",
         highest_mode="LP02",
         launch_mode="LP01",
         sim_type="femsim",
@@ -83,5 +84,5 @@ if __name__ == "__main__":
         hide_sim=False,
     )
 
-    fig = visualise_lp_lantern(core_map)
+    fig = visualise_lp_lantern(mspl_core_map)
     plt.show()
