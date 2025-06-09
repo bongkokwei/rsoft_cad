@@ -13,6 +13,10 @@ from rsoft_cad.layout import create_core_map
 from rsoft_cad.geometry import model_photonic_lantern_taper, extract_lantern_endpoints
 from rsoft_cad import LaunchType, MonitorType, TaperType
 
+"""
+TODO: REMOVE CORE_DIA_DICT DEF IN FUNCTION
+"""
+
 
 class ModeSelectiveLantern(BaseLantern):
     """
@@ -152,15 +156,17 @@ class ModeSelectiveLantern(BaseLantern):
             # Update core_diameters for the model to use the same values
             core_diameters = core_dia_dict
         elif core_diameters is None:
+            # core_diameters = {
+            #     "LP01": 10.7,
+            #     "LP11a": 9.6,
+            #     "LP11b": 9.6,
+            #     "LP21a": 8.5,
+            #     "LP21b": 8.5,
+            #     "LP02": 7.35,
+            # }
+
             # Use defaults if nothing is provided
-            core_diameters = {
-                "LP01": 10.7,  # Fundamental mode gets largest core
-                "LP11a": 9.6,  # First higher-order mode pair
-                "LP11b": 9.6,
-                "LP21a": 8.5,  # Second higher-order mode pair
-                "LP21b": 8.5,
-                "LP02": 7.35,  # Second radial mode gets smallest core
-            }
+            core_diameters = {fiber_name: 10.4 for fiber_name in core_map.keys()}
             self.fiber_config.set_core_dia(core_diameters)
 
         if cladding_dia_dict is not None:
