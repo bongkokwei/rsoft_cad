@@ -127,7 +127,8 @@ def visualise_modes(
             ax.text(
                 0.5,
                 0.5,
-                f"Error\nMode {i:02d}\n{str(e)[:20]}...",
+                # f"Error\nMode {i:02d}\n{str(e)[:20]}...",
+                "Error 404",
                 ha="center",
                 va="center",
                 transform=ax.transAxes,
@@ -137,7 +138,7 @@ def visualise_modes(
             ax.set_facecolor("#2E2E2E")
 
     # Adjust spacing between subplots
-    plt.tight_layout(pad=1.5)
+    plt.tight_layout(pad=0.5)
 
     # Define output path
     figure_filename = os.path.join(
