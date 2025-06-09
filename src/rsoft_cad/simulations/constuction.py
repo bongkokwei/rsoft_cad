@@ -22,6 +22,7 @@ from rsoft_cad.utils import get_fiber_type_list_by_indices, fiber_assignment
 
 def build_parameterised_lantern(
     fiber_indices: List[int],
+    lantern_type: str = "mode_selective",  # New parameter with default
     taper_file_name: Optional[str] = None,
     run_name: str = "test_run",
     expt_dir: str = "optimising_expt",
@@ -41,6 +42,7 @@ def build_parameterised_lantern(
 
     Args:
         fiber_indices: List of integer indices to select fiber types
+        lantern_type: Type of lantern to create (default: "mode_selective")
         run_name: Name for this lantern run
         highest_mode: Mode order to simulate (default: "LP02")
         launch_mode: Input mode (default: "LP01")
@@ -60,7 +62,7 @@ def build_parameterised_lantern(
     """
     # Set up logging
     logger = logging.getLogger(__name__)
-    logger.info(f"Creating lantern with run name: {run_name}")
+    logger.info(f"Creating {lantern_type} lantern with run name: {run_name}")
 
     # Initialize sigmoid_params if None
     if sigmoid_params is None:
@@ -117,7 +119,6 @@ def build_parameterised_lantern(
 
     # Create a dictionary with default parameters
     default_params: Dict[str, Any] = {
-        "highest_mode": highest_mode,
         "launch_mode": launch_mode,
         "opt_name": run_name,
         "taper_factor": 1,
@@ -139,9 +140,6 @@ def build_parameterised_lantern(
     default_params.update(additional_params)
     logger.debug(f"Lantern parameters: {default_params}")
 
-    # Create partial function with updated parameters
-    lantern_func = partial(make_parameterised_lantern, **default_params)
-
     # Create core map
     core_map, _ = create_core_map(highest_mode, 125)
     logger.debug(f"Core map created for {highest_mode}")
@@ -155,13 +153,15 @@ def build_parameterised_lantern(
     fiber_properties = fiber_assignment(core_map, fiber_types, smf_df)
     logger.debug(f"Fiber properties assigned: {list(fiber_properties.keys())}")
 
-    # Create lantern object
-    filepath, file_name, core_map = lantern_func(
-        opt_name=run_name,
+    # Call the updated make_parameterised_lantern with lantern_type parameter
+    filepath, file_name, core_map = make_parameterised_lantern(
+        lantern_type=lantern_type,
+        highest_mode=highest_mode,  # This goes to lantern_specific_kwargs for mode_selective
         core_dia_dict=fiber_properties["Core_Diameter_micron"],
         cladding_dia_dict=fiber_properties["Cladding_Diameter_micron"],
         cladding_index_dict=fiber_properties["Cladding_Index"],
         core_index_dict=fiber_properties["Core_Index"],
+        **default_params,
     )
 
     logger.info(f"Lantern created at {os.path.join(filepath,file_name)}")
@@ -171,6 +171,7 @@ def build_parameterised_lantern(
 
 def build_and_simulate_lantern(
     fiber_indices: List[int],
+    lantern_type: str = "mode_selective",  # New parameter with default
     taper_file_name: Optional[str] = None,
     run_name: str = "test_run",
     highest_mode: str = "LP02",
@@ -194,6 +195,7 @@ def build_and_simulate_lantern(
 
     Args:
         fiber_indices: List of integer indices to select fiber types
+        lantern_type: Type of lantern to create (default: "mode_selective")
         run_name: Name for this lantern run
         highest_mode: Mode order to simulate (default: "LP02")
         launch_mode: Input mode (default: "LP01")
@@ -209,11 +211,14 @@ def build_and_simulate_lantern(
     """
     # Set up logging
     logger = logging.getLogger(__name__)
-    logger.info(f"Creating and simulating lantern with run name: {run_name}")
+    logger.info(
+        f"Creating and simulating {lantern_type} lantern with run name: {run_name}"
+    )
 
     # Create lantern
     filepath, file_name, core_map = build_parameterised_lantern(
         fiber_indices=fiber_indices,
+        lantern_type=lantern_type,
         taper_file_name=taper_file_name,
         run_name=run_name,
         expt_dir=expt_dir,
