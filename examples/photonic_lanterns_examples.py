@@ -69,12 +69,12 @@ def create_photonic_lantern_smf():
     # Option 2: Ring-based selection (different fiber per ring)
     center_fiber = 1  # LEAF (larger core for center)
     ring1_fiber = 0  # SMF-28 (standard)
-    # ring2_fiber = 6  # G.657.A2 (smaller core for outer ring)
+    ring2_fiber = 6  # G.657.A2 (smaller core for outer ring)
 
     fiber_indices_rings = (
         [center_fiber]  # Center core
         + [ring1_fiber] * 6  # First ring
-        # + [ring2_fiber] * 12  # Second ring
+        + [ring2_fiber] * 12  # Second ring
     )
 
     # Choose strategy (you can change this)
@@ -117,10 +117,10 @@ def create_photonic_lantern_smf():
         output_file = visualise_modes(
             folder_name=expt_dir,
             file_prefix="pl_smf_example",
-            num_modes=total_cores,  # Show all cores
-            nrow=3,
-            ncol=6,
-            figsize=(6, 12),
+            num_modes=40,  # Show all cores
+            nrow=5,
+            ncol=8,
+            figsize=(12, 16),
             show_plot=True,
             cleanup_files=True,
         )
