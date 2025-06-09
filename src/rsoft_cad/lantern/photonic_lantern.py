@@ -142,6 +142,7 @@ class PhotonicLantern(BaseLantern):
         capillary_od: float = 900,
         final_capillary_id: float = 40,
         num_points: int = 100,
+        **kwargs,
     ) -> dict[str, tuple[float, float]]:
         """
         Create and configure a photonic lantern.
