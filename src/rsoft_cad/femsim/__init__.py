@@ -40,7 +40,7 @@ from .utils import filter_indices
 
 from .femsim_plot import nef_plot
 
-from .param_scan import femsim_tapered_lantern, femsimulation
+from .femsim_param_scan import femsim_tapered_lantern, femsimulation
 
 __all__ = [
     # Data processing

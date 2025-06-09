@@ -17,6 +17,10 @@ from rsoft_cad import (
     configure_logging,
 )
 
+"""
+TODO: FORCE USERS TO ADD FIBER CORE DIAMETER DICTIONARY
+"""
+
 
 def beamprop_tapered_lantern(
     expt_dir="femsim_run_000",
