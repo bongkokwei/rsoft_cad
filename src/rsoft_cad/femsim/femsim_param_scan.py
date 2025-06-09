@@ -23,6 +23,8 @@ TODO: FORCE USERS TO ADD FIBER CORE DIAMETER DICTIONARY
 
 
 def femsim_tapered_lantern(
+    lantern_type="mode_selective",  # New parameter with default
+    layer_config=None,  # For photonic lanterns
     expt_dir="femsim_run_000",
     data_dir="output",
     taper_factor=1,
@@ -45,6 +47,12 @@ def femsim_tapered_lantern(
 
     Parameters:
     -----------
+    lantern_type : str
+        Type of lantern to create (default: "mode_selective")
+    layer_config : List[Tuple[int, float]], optional
+        Layer configuration for photonic lanterns. Required when lantern_type="photonic".
+        Format: [(num_cores_in_layer, radius_factor), ...]
+        Example: [(1, 1.0), (6, 1.0), (12, 1.0)] for 1 center + 6 inner ring + 12 outer ring
     expt_dir : str
         Directory to store experiment results
     data_dir : str
@@ -80,6 +88,7 @@ def femsim_tapered_lantern(
         logger = logging.getLogger(__name__)
 
     logger.info(f"Starting tapered lantern simulation in directory: {expt_dir}")
+    logger.info(f"Lantern type: {lantern_type}")
     logger.info(
         f"Configuration: taper_factor={taper_factor}, taper_length={taper_length}, "
         f"num_points={num_points}, highest_mode={highest_mode}, launch_mode={launch_mode}"
@@ -97,9 +106,25 @@ def femsim_tapered_lantern(
 
     x_value = pd.DataFrame(columns=["filename", "z_pos"])
 
+    # Prepare lantern-specific kwargs based on type
+    lantern_kwargs = {}
+    if lantern_type == "mode_selective":
+        if highest_mode is None:
+            raise ValueError("highest_mode is required for mode_selective lanterns")
+        lantern_kwargs["highest_mode"] = highest_mode
+    elif lantern_type == "photonic":
+        if layer_config is None:
+            raise ValueError("layer_config is required for photonic lanterns")
+        lantern_kwargs["layer_config"] = layer_config
+        # Use photonic default launch mode if not specifically set
+        if launch_mode == "LP01":  # Default for mode_selective
+            launch_mode = "0"  # Default for photonic
+    else:
+        raise ValueError(f"Unsupported lantern_type: {lantern_type}")
+
     n_eff_expt = partial(
         make_parameterised_lantern,
-        highest_mode=highest_mode,
+        lantern_type,  # First positional argument is now lantern_type
         launch_mode=launch_mode,
         sim_type=sim_type,
         femnev=femnev,
@@ -117,6 +142,7 @@ def femsim_tapered_lantern(
         mode_output=mode_output,
         final_capillary_id=final_capillary_id,
         num_pads=50,
+        **lantern_kwargs,  # Add the lantern-specific parameters
     )
     logger.debug("Configured parameterized lantern function")
 
@@ -172,6 +198,22 @@ def femsimulation():
 
     parser = argparse.ArgumentParser(
         description="Run lantern simulations to analyse effective refractive index."
+    )
+
+    # Add lantern type argument
+    parser.add_argument(
+        "--lantern-type",
+        type=str,
+        default="mode_selective",
+        help="Type of lantern to create (default: mode_selective)",
+    )
+
+    # Add layer config argument for photonic lanterns
+    parser.add_argument(
+        "--layer-config",
+        type=str,
+        help="Layer config for photonic lanterns as JSON string. "
+        'Example: "[[1, 1.0], [6, 1.0], [12, 1.0]]" for 1 center + 6 inner + 12 outer cores',
     )
 
     parser.add_argument(
@@ -266,6 +308,26 @@ def femsimulation():
 
     args = parser.parse_args()
 
+    # Parse layer config if provided
+    layer_config = None
+    if args.layer_config:
+        try:
+            import json
+
+            layer_config_raw = json.loads(args.layer_config)
+            # Convert to list of tuples
+            layer_config = [(int(n), float(r)) for n, r in layer_config_raw]
+        except (json.JSONDecodeError, ValueError, TypeError) as e:
+            print(f"Error parsing layer-config: {e}")
+            print('Expected format: "[[1, 1.0], [6, 1.0], [12, 1.0]]"')
+            exit(1)
+
+    # Validate lantern type and required parameters
+    if args.lantern_type == "photonic" and layer_config is None:
+        print("Error: --layer-config is required when --lantern-type is 'photonic'")
+        print('Example: --layer-config "[[1, 1.0], [6, 1.0], [12, 1.0]]"')
+        exit(1)
+
     expt_dir = get_next_run_folder(args.data_dir, args.output_prefix)
 
     # Set up logging
@@ -321,6 +383,8 @@ def femsimulation():
         )
         try:
             femsim_tapered_lantern(
+                lantern_type=args.lantern_type,  # Pass lantern type
+                layer_config=layer_config,  # Pass layer config for photonic lanterns
                 expt_dir=expt_dir,
                 taper_factor=args.taper_factor,
                 taper_length=args.taper_length,
