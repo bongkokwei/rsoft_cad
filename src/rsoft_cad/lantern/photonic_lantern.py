@@ -1,5 +1,5 @@
 """
-Photonic Lantern implementation.
+Photonic Lantern implementation - Refactored to support inheritance.
 """
 
 import os
@@ -17,6 +17,9 @@ from rsoft_cad import LaunchType, MonitorType, TaperType
 class PhotonicLantern(BaseLantern):
     """
     Generate a photonic lantern by specifying the number of cores in concentric rings.
+
+    This class has been refactored to support inheritance by extracting core map creation
+    and other customizable behaviors into separate methods.
     """
 
     def __init__(self, **params):
@@ -35,6 +38,53 @@ class PhotonicLantern(BaseLantern):
         # Create helper objects using composition
         self.fiber_config = FiberConfigurator(self.bundle)
         self.segment_manager = SegmentManager(self)
+
+    def _create_core_map_and_capillary(self, layer_config):
+        """
+        Create the core map and determine capillary diameter.
+
+        This method can be overridden by subclasses to implement different
+        core map creation strategies.
+
+        Args:
+            layer_config: Configuration parameter for core map creation
+
+        Returns:
+            tuple: (core_map, cap_dia)
+        """
+        return create_indexed_core_map(layer_config, self.cladding_dia)
+
+    def _get_default_core_diameters(self, core_map):
+        """
+        Get default core diameters for the given core map.
+
+        This method can be overridden by subclasses to provide different defaults.
+
+        Args:
+            core_map (dict): The core map dictionary
+
+        Returns:
+            dict: Dictionary mapping fiber names to core diameters
+        """
+        return {fiber_name: 10.4 for fiber_name in core_map.keys()}
+
+    def _get_default_launch_mode(self):
+        """
+        Get the default launch mode for this lantern type.
+
+        Returns:
+            str: Default launch mode
+        """
+        return "0"
+
+    def _get_output_file_prefix(self):
+        """
+        Get the file prefix for output files.
+
+        Returns:
+            str: File prefix (e.g., "photonic_lantern", "mspl")
+        """
+        return "photonic_lantern"
 
     def configure_tapers(self, taper_config):
         """
@@ -55,14 +105,24 @@ class PhotonicLantern(BaseLantern):
                 self.add_user_taper(filename=taper_config.custom_filename)
 
     def get_segment_taper_type(self, taper_config, segment_key):
+        """
+        Get the taper type for a specific segment.
+
+        Args:
+            taper_config: Taper configuration
+            segment_key (str): Segment identifier
+
+        Returns:
+            str: Taper type for the segment
+        """
         if isinstance(taper_config, dict):
             return taper_config.get(segment_key, TaperType.linear()).taper_type
         return taper_config.taper_type
 
     def create_lantern(
         self,
-        layer_config: list,
-        launch_mode: str | list[str] = "0",
+        layer_config,
+        launch_mode: str | list[str] | None = None,
         taper_factor: float = 1,
         taper_length: float = 80000,
         core_diameters: dict[str, float] | None = None,
@@ -97,8 +157,10 @@ class PhotonicLantern(BaseLantern):
         8. Setting simulation parameters
 
         Args:
-            layer_config (list): List of tuples (num_circles, scale_factor) for each layer
-            launch_mode (str | list[str]): The mode(s) to launch from (default: "0")
+            layer_config: Configuration parameter for core map creation (type depends on subclass)
+                         For PhotonicLantern: List of tuples (num_circles, scale_factor) for each layer
+                         For ModeSelectiveLantern: String representing highest LP mode (e.g., "LP02")
+            launch_mode (str | list[str] | None): The mode(s) to launch from (None uses default)
             taper_factor (float): The factor by which the fibers are tapered (default: 1)
             taper_length (float): The length of the taper in microns (default: 80000)
             core_diameters (dict[str, float] | None): Dictionary mapping fiber names to core diameters.
@@ -106,6 +168,7 @@ class PhotonicLantern(BaseLantern):
                                           Example: {"LP01": 10.7, "LP11a": 9.6}
             savefile (bool): Whether to save the design file (default: True)
             femnev (int): Number of eigenmodes to find in FEM simulation (default: 1)
+            data_dir (str): Directory to save the design file (default: "output")
             opt_name (int | str): Optional name identifier for the output file (default: 0)
             sim_params (dict[str, any] | None): Dictionary of simulation parameters to override defaults.
                                        Any parameter that can be passed to update_global_params.
@@ -119,18 +182,24 @@ class PhotonicLantern(BaseLantern):
             bg_index_dict (dict[str, float] | None): Dictionary to set background indices for specific fibers
             cladding_index_dict (dict[str, float] | None): Dictionary to set cladding indices for specific fibers
             core_index_dict (dict[str, float] | None): Dictionary to set core indices for specific fibers
-            monitor_type: Type of monitor to add to each pathway. Defaults to FIBER_POWER.
-            taper_config: Taper profile to use if tapering is applied. Defaults to LINEAR.
-            launch_type: Type of field distribution to launch. Defaults to GAUSSIAN.
+            monitor_type (MonitorType): Type of monitor to add to each pathway. Defaults to FIBER_POWER.
+            taper_config (TaperType | dict[str, TaperType]): Taper profile to use if tapering is applied.
+                                                            Can be a single TaperType for all segments or
+                                                            a dictionary mapping segment names to their taper types.
+                                                            Defaults to LINEAR.
+            launch_type (LaunchType): Type of field distribution to launch. Defaults to GAUSSIAN.
             capillary_od (float): Outer diameter of the capillary in microns (default: 900)
             final_capillary_id (float): Final inner diameter of the capillary after tapering in microns (default: 40)
             num_points (int): Number of points along z-axis for model discretization (default: 100)
 
         Returns:
             dict[str, tuple[float, float]]: The core map showing the spatial layout of fiber cores
+
+        Raises:
+            ValueError: If required parameters are missing or invalid
         """
-        # Create a core map based on the layer configuration
-        core_map, cap_dia = create_indexed_core_map(layer_config, self.cladding_dia)
+        # Create a core map based on the configuration (subclass-specific)
+        core_map, cap_dia = self._create_core_map_and_capillary(layer_config)
         self.cap_dia = cap_dia
 
         # Update the bundle with spatial coordinates from the core map
@@ -139,15 +208,21 @@ class PhotonicLantern(BaseLantern):
         # Reset num_cores
         self.num_cores = len(self.bundle)
 
-        # Use provided core diameters or set defaults
+        # Use default launch mode if none provided
+        if launch_mode is None:
+            launch_mode = self._get_default_launch_mode()
+
+        # Handle core diameter configuration
         if core_dia_dict is not None:
             self.fiber_config.set_core_dia(core_dia_dict)
             # Update core_diameters for the model to use the same values
             core_diameters = core_dia_dict
-        else:
-            core_diameters = {fiber_name: 10.4 for fiber_name in core_map.keys()}
+        elif core_diameters is None:
+            # Use subclass-specific defaults
+            core_diameters = self._get_default_core_diameters(core_map)
             self.fiber_config.set_core_dia(core_diameters)
 
+        # Handle other fiber property configurations
         if cladding_dia_dict is not None:
             self.fiber_config.set_cladding_dia(cladding_dia_dict)
 
@@ -168,16 +243,15 @@ class PhotonicLantern(BaseLantern):
         self.configure_tapers(taper_config)
 
         # Model the physical properties of the lantern
-        # This creates a 3D model of the photonic lantern's physical structure
         self.model = model_photonic_lantern_taper(
-            z_points=num_points,  # Number of points along z-axis for model discretization
-            taper_length=taper_length,  # Total length of the taper in microns
+            z_points=num_points,
+            taper_length=taper_length,
             cladding_diameter=self.default_fiber_props["cladding_dia"],
-            final_capillary_id=final_capillary_id,  # Final inner diameter of capillary after tapering
-            capillary_id=cap_dia,  # Initial inner diameter of the capillary
-            capillary_od=capillary_od,  # Outer diameter of the capillary
-            core_map=core_map,  # Spatial layout of fiber cores
-            core_diameters=core_diameters,  # Diameters for each fiber core
+            final_capillary_id=final_capillary_id,
+            capillary_id=cap_dia,
+            capillary_od=capillary_od,
+            core_map=core_map,
+            core_diameters=core_diameters,
         )
 
         (
@@ -211,13 +285,13 @@ class PhotonicLantern(BaseLantern):
         )
 
         # Configure the launch field
-        if not isinstance(launch_mode, list):  # check if list
+        if not isinstance(launch_mode, list):
             self.segment_manager.launch_from_fiber(
                 self.bundle,
                 launch_mode,
                 launch_type=launch_type,
             )
-        else:  # more than one launch mode
+        else:
             for mode in launch_mode:
                 self.segment_manager.launch_from_fiber(
                     self.bundle,
@@ -240,11 +314,12 @@ class PhotonicLantern(BaseLantern):
         # Set simulation parameters
         self.update_global_params(**default_sim_params)
 
-        # Configure the design file name and directory
+        # Configure the design file name and directory (subclass-specific)
+        file_prefix = self._get_output_file_prefix()
         self.design_filepath = os.path.join(
-            data_dir, f"photonic_lantern_{self.num_cores}_cores"
+            data_dir, f"{file_prefix}_{self.num_cores}_cores"
         )
-        self.design_filename = f"photonic_lantern_{self.num_cores}_cores_{opt_name}.ind"
+        self.design_filename = f"{file_prefix}_{self.num_cores}_cores_{opt_name}.ind"
 
         # Save the design file if requested
         if savefile:
@@ -296,8 +371,6 @@ if __name__ == "__main__":
         savefile=True,
         opt_name="prototype",
     )
-
-    # print(pl)
 
     # Visualize the lantern design
     fig, ax = visualise_and_save_lantern(core_map)
