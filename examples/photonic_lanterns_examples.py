@@ -49,12 +49,11 @@ def create_photonic_lantern_smf():
     # Show SMF database summary
     smf_df = show_smf_database_summary()
 
-    # Define photonic lantern configuration
-    # Concentric circles: center + 2 rings
+    # Define photonic lantern configuration: [(num cores, scale factor)]
     layer_config = [
         (1, 0.0),  # Center core
         (6, 1.0),  # First ring: 6 cores
-        (12, 1.8),  # Second ring: 12 cores
+        (12, 1.0),  # Second ring: 12 cores
     ]
 
     total_cores = sum(layer[0] for layer in layer_config)
@@ -78,7 +77,7 @@ def create_photonic_lantern_smf():
     )
 
     # Choose strategy (you can change this)
-    selected_strategy = "rings"  # Options: "uniform", "rings", "mixed"
+    selected_strategy = "uniform"  # Options: "uniform", "rings", "mixed"
 
     if selected_strategy == "uniform":
         fiber_indices = fiber_indices_uniform
@@ -95,6 +94,7 @@ def create_photonic_lantern_smf():
     try:
         result = build_and_simulate_lantern(
             fiber_indices=fiber_indices,
+            taper_file_name="sigmoid.dat",
             lantern_type="photonic",
             run_name="pl_smf_example",
             expt_dir=expt_dir,

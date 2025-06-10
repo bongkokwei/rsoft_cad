@@ -59,7 +59,7 @@ def create_mode_selective_lantern_smf():
     #   0: SMF-28 (8.2 μm core)
     #   6: G.657.A2 (8.0 μm core)
 
-    fiber_indices = [1, 2, 2, 9, 9, 8, 0, 0]  # Strategic selection for LP modes
+    fiber_indices = [1, 2, 2, 9, 9, 8]  # Strategic selection for LP modes
 
     # Get fiber type names
     fiber_types = get_fiber_type_list_by_indices(smf_df, fiber_indices)
@@ -69,12 +69,13 @@ def create_mode_selective_lantern_smf():
     try:
         result = build_and_simulate_lantern(
             fiber_indices=fiber_indices,
+            taper_file_name="sigmoid.dat",
             lantern_type="mode_selective",
             run_name="mspl_smf_example",
             expt_dir=expt_dir,
             data_dir=data_dir,
             save_folder="rsoft_data_files",
-            highest_mode="LP31",  # Target the LP31 mode
+            highest_mode="LP02",  # Target the LP31 mode
             launch_mode="LP01",  # Launch from fundamental mode
             taper_length=50000,  # 50mm taper length
             sim_type="femsim",  # Finite element method
@@ -90,10 +91,10 @@ def create_mode_selective_lantern_smf():
         output_file = visualise_modes(
             folder_name=expt_dir,
             file_prefix="mspl_smf_example",
-            num_modes=40,  # Show multiple modes
-            nrow=5,
-            ncol=8,
-            figsize=(12, 16),
+            num_modes=12,  # Show multiple modes
+            nrow=3,
+            ncol=4,
+            figsize=(6, 8),
             show_plot=True,
             cleanup_files=True,
         )
