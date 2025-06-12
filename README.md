@@ -1,8 +1,14 @@
-# Photonic Lantern Simulation Toolkit
+# RSoft PLTools - Photonic Lantern Simulation Toolkit
+
+[![Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg)](https://sail-labs.github.io/rsoft-pltools/)
+[![Python 3.6+](https://img.shields.io/badge/python-3.6+-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ## Overview
 
-The Photonic Lantern Simulation Toolkit is a comprehensive Python package for designing, simulating, and analysing photonic lanterns - specialised optical components that enable efficient coupling between multimode and single-mode optical systems. This toolkit provides tools for designing various lantern configurations, running optical simulations, and analysing results.
+RSoft PLTools is a comprehensive Python package for designing, simulating, and analysing photonic lanterns - specialised optical components that enable efficient coupling between multimode and single-mode optical systems. This toolkit provides tools for designing various lantern configurations, running optical simulations, and analysing results.
+
+📖 **[View Full Documentation](https://sail-labs.github.io/rsoft-pltools/)**
 
 ## Features
 
@@ -28,8 +34,8 @@ The Photonic Lantern Simulation Toolkit is a comprehensive Python package for de
 
 ```bash
 # Clone the repository
-git clone https://github.com/bongkokwei/rsoft_cad.git
-cd rsoft_cad
+git clone https://github.com/SAIL-Labs/rsoft-pltools.git
+cd rsoft_pltoolsr
 
 # Install in development mode
 pip install -e .
@@ -83,8 +89,8 @@ pip install -e .
 ### Creating and Simulating a Mode Selective Lantern
 
 ```python
-from rsoft_cad.rsoft_mspl import ModeSelectiveLantern
-from rsoft_cad.rsoft_simulations import run_simulation
+from rsoft_pltoolsr.rsoft_mspl import ModeSelectiveLantern
+from rsoft_pltoolsr.rsoft_simulations import run_simulation
 import os
 
 # Create a mode selective lantern
@@ -120,7 +126,7 @@ print("Simulation stderr:", simulation_result.stderr)
 ### Performing Parameter Sweeps
 
 ```python
-from rsoft_cad.beamprop import beamprop_tapered_lantern
+from rsoft_pltoolsr.beamprop import beamprop_tapered_lantern
 import numpy as np
 
 # Define taper lengths to analyse
@@ -139,7 +145,7 @@ for i, taper_length in enumerate(taper_lengths):
     )
 
 # Analyse the results
-from rsoft_cad.beamprop import plot_combined_monitor_files
+from rsoft_pltoolsr.beamprop import plot_combined_monitor_files
 fig, ax, combined_df, final_values, summary, optimal_taper, optimal_value = plot_combined_monitor_files(
     "output/taper_length_sweep/rsoft_data_files"
 )
@@ -148,7 +154,7 @@ fig, ax, combined_df, final_values, summary, optimal_taper, optimal_value = plot
 ### Using Configuration Files
 
 ```python
-from rsoft_cad.utils.config.modifier import load_config, modify_parameter, save_config
+from rsoft_pltoolsr.utils.config.modifier import load_config, modify_parameter, save_config
 
 # Load the default configuration
 config = load_config("config/complete_pl_config.json")
@@ -168,8 +174,8 @@ create_photonic_lantern(config, "output/custom_lantern.ind")
 ### Analysing Effective Refractive Index
 
 ```python
-from rsoft_cad.femsim import femsim_tapered_lantern, nef_plot
-from rsoft_cad.femsim.visualisation import plot_combined_nef_files
+from rsoft_pltoolsr.femsim import femsim_tapered_lantern, nef_plot
+from rsoft_pltoolsr.femsim.visualisation import plot_combined_nef_files
 import matplotlib.pyplot as plt
 
 # Run FemSIM simulation for effective index analysis
@@ -206,14 +212,14 @@ Alternatively, we can simulate, plot and analyse effective indices using the com
 
 ```bash
 # Run FemSIM simulation
-python -c "from rsoft_cad.femsim import femsimulation; femsimulation()" \
+python -c "from rsoft_pltoolsr.femsim import femsimulation; femsimulation()" \
     --taper-factors 18.75 \
     --taper-length 40000 \
     --num-grids 200 \
     --num-points 200 \
     --mode-output OUTPUT_NONE
 # Plot effective indices
-python -c "from rsoft_cad.femsim import nef_plot; nef_plot()" \
+python -c "from rsoft_pltoolsr.femsim import nef_plot; nef_plot()" \
     --folder-path femsim_run_001 \
     --plot-type real \
     --fit-data
@@ -233,8 +239,38 @@ The toolkit provides visualisation utilities:
 - Python 3.6+
 - NumPy 1.2+
 - Matplotlib 2.0+
+- Pandas
+- SciPy
+- Seaborn
 - RSoft CAD (for simulations)
+
+## Documentation
+
+Complete documentation is available at **[https://sail-labs.github.io/rsoft-pltools/](https://sail-labs.github.io/rsoft-pltools/)**
+
+### Quick Links
+- 📖 [Installation Guide](https://sail-labs.github.io/rsoft-pltools/installation.html)
+- 🚀 [Quick Start](https://sail-labs.github.io/rsoft-pltools/quick-start.html)
+- 📚 [Tutorials](https://sail-labs.github.io/rsoft-pltools/tutorials.html)
+- 🔧 [API Reference](https://sail-labs.github.io/rsoft-pltools/api-reference.html)
+- 💡 [Examples](https://sail-labs.github.io/rsoft-pltools/examples.html)
+
+### Building Documentation Locally
+
+To build the documentation locally:
+
+```bash
+# Install documentation dependencies
+conda activate rsoft-tools
+conda install sphinx sphinx_rtd_theme myst-parser -c conda-forge
+
+# Build documentation
+cd docs
+./build_docs.sh
+```
+
+The documentation will be available at `docs/_build/html/index.html`.
 
 ## Contact
 
-Kok-Wei Bong - bongkokwei@gmail.com
+Kok-Wei Bong - kok-wei.bong@sydney.edu.au
