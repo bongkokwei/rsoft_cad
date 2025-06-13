@@ -6,6 +6,8 @@ import os
 import time
 import argparse
 import logging
+import json
+from typing import Optional, Dict
 
 from rsoft_cad.rsoft_simulations import run_simulation
 from rsoft_cad.utils import get_next_run_folder
@@ -36,6 +38,12 @@ def beamprop_tapered_lantern(
     mode_output="OUTPUT_REAL_IMAG",
     final_capillary_id=25,
     opt_name="beamprop",
+    # New dictionary parameters
+    core_index_dict=None,
+    cladding_index_dict=None,
+    core_dia_dict=None,
+    cladding_dia_dict=None,
+    bg_index_dict=None,
     logger=None,
 ):
     """
@@ -84,6 +92,16 @@ def beamprop_tapered_lantern(
         Final capillary identifier for the lantern structure (default: 25)
     opt_name : str, optional
         Optimization/run name for file identification (default: "beamprop")
+    core_index_dict : Dict[str, float], optional
+        Dictionary mapping modes/cores to core refractive indices
+    cladding_index_dict : Dict[str, float], optional
+        Dictionary mapping modes/cores to cladding refractive indices
+    core_dia_dict : Dict[str, float], optional
+        Dictionary mapping modes/cores to core diameters in micrometers
+    cladding_dia_dict : Dict[str, float], optional
+        Dictionary mapping modes/cores to cladding diameters in micrometers
+    bg_index_dict : Dict[str, float], optional
+        Dictionary mapping modes/cores to background refractive indices
     logger : logging.Logger, optional
         Logger instance for output messages (default: None, creates new logger)
 
@@ -117,6 +135,18 @@ def beamprop_tapered_lantern(
     logger.info(f"  - Launch mode: {launch_mode}")
     logger.info(f"  - Grid points: {num_grid}")
     logger.info(f"  - Custom taper file: {file_name_dim}")
+
+    # Log dictionary parameters if provided
+    if core_index_dict:
+        logger.info(f"Using custom core indices: {core_index_dict}")
+    if cladding_index_dict:
+        logger.info(f"Using custom cladding indices: {cladding_index_dict}")
+    if core_dia_dict:
+        logger.info(f"Using custom core diameters: {core_dia_dict}")
+    if cladding_dia_dict:
+        logger.info(f"Using custom cladding diameters: {cladding_dia_dict}")
+    if bg_index_dict:
+        logger.info(f"Using custom background indices: {bg_index_dict}")
 
     try:
         # Prepare lantern-specific kwargs based on type
@@ -159,6 +189,12 @@ def beamprop_tapered_lantern(
             mode_output=mode_output,  # Output data format
             final_capillary_id=final_capillary_id,  # End structure ID
             num_pads=50,  # Padding layers for boundary conditions
+            # Add the dictionary parameters
+            core_index_dict=core_index_dict,
+            cladding_index_dict=cladding_index_dict,
+            core_dia_dict=core_dia_dict,
+            cladding_dia_dict=cladding_dia_dict,
+            bg_index_dict=bg_index_dict,
             **lantern_kwargs,  # Add the lantern-specific parameters
         )
 
@@ -214,6 +250,34 @@ def beamprop_tapered_lantern(
     return core_map
 
 
+def parse_dict_argument(dict_str: str, arg_name: str) -> Optional[Dict[str, float]]:
+    """
+    Parse a dictionary argument from command line JSON string.
+
+    Args:
+        dict_str: JSON string representation of dictionary
+        arg_name: Name of the argument (for error messages)
+
+    Returns:
+        Dictionary mapping strings to floats, or None if input is None
+
+    Raises:
+        SystemExit: If parsing fails
+    """
+    if dict_str is None:
+        return None
+
+    try:
+        parsed_dict = json.loads(dict_str)
+        # Convert all values to float and ensure keys are strings
+        return {str(k): float(v) for k, v in parsed_dict.items()}
+    except (json.JSONDecodeError, ValueError, TypeError) as e:
+        print(f"Error parsing {arg_name}: {e}")
+        print(f'Expected format for {arg_name}: {{"key1": value1, "key2": value2}}')
+        print(f'Example: {{"LP01": 1.4504, "LP11": 1.4502, "LP02": 1.4500}}')
+        exit(1)
+
+
 def main():
     """
     Main function to parse command line arguments and run tapered lantern simulations.
@@ -239,6 +303,27 @@ def main():
         description="Run tapered photonic lantern beam propagation simulations "
         "to analyze coupling efficiency and optical losses.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+                Examples:
+                  # Basic mode selective lantern simulation
+                  python beamprop_param_scan.py --lantern-type mode_selective --taper-length 30000 80000 50
+
+                  # Photonic lantern with custom layer configuration
+                  python beamprop_param_scan.py --lantern-type photonic --layer-config "[[1, 1.0], [6, 1.0]]"
+
+                  # Mode selective with custom optical properties
+                  python beamprop_param_scan.py --lantern-type mode_selective \\
+                    --core-index-dict '{"LP01": 1.4504, "LP02": 1.4502}' \\
+                    --cladding-index-dict '{"LP01": 1.4446, "LP02": 1.4446}' \\
+                    --core-dia-dict '{"LP01": 8.2, "LP02": 8.0}'
+
+                  # Photonic lantern with graded index profile
+                  python beamprop_param_scan.py --lantern-type photonic \\
+                    --layer-config "[[1, 1.0], [6, 1.0], [12, 1.0]]" \\
+                    --core-index-dict '{"0": 1.4504, "1": 1.4502, "2": 1.4500}' \\
+                    --core-dia-dict '{"0": 8.2, "1": 8.0, "2": 7.8}' \\
+                    --taper-length 25000 75000 75
+        """,
     )
 
     # Add command line arguments
@@ -267,6 +352,42 @@ def main():
         type=str,
         help="Layer config for photonic lanterns as JSON string. "
         'Example: "[[1, 1.0], [6, 1.0], [12, 1.0]]" for 1 center + 6 inner + 12 outer cores',
+    )
+
+    # Add dictionary arguments for optical properties
+    parser.add_argument(
+        "--core-index-dict",
+        type=str,
+        help="Core refractive index dictionary as JSON string. "
+        'Example: {"LP01": 1.4504, "LP11": 1.4502, "LP02": 1.4500}',
+    )
+
+    parser.add_argument(
+        "--cladding-index-dict",
+        type=str,
+        help="Cladding refractive index dictionary as JSON string. "
+        'Example: {"LP01": 1.4446, "LP11": 1.4446, "LP02": 1.4446}',
+    )
+
+    parser.add_argument(
+        "--core-dia-dict",
+        type=str,
+        help="Core diameter dictionary as JSON string (in micrometers). "
+        'Example: {"LP01": 8.2, "LP11": 8.0, "LP02": 7.8}',
+    )
+
+    parser.add_argument(
+        "--cladding-dia-dict",
+        type=str,
+        help="Cladding diameter dictionary as JSON string (in micrometers). "
+        'Example: {"LP01": 125.0, "LP11": 125.0, "LP02": 125.0}',
+    )
+
+    parser.add_argument(
+        "--bg-index-dict",
+        type=str,
+        help="Background refractive index dictionary as JSON string. "
+        'Example: {"LP01": 1.0, "LP11": 1.0, "LP02": 1.0}',
     )
 
     # Add additional arguments for future expansion
@@ -298,8 +419,6 @@ def main():
     layer_config = None
     if args.layer_config:
         try:
-            import json
-
             layer_config_raw = json.loads(args.layer_config)
             # Convert to list of tuples
             layer_config = [(int(n), float(r)) for n, r in layer_config_raw]
@@ -307,6 +426,15 @@ def main():
             print(f"Error parsing layer-config: {e}")
             print('Expected format: "[[1, 1.0], [6, 1.0], [12, 1.0]]"')
             exit(1)
+
+    # Parse dictionary arguments
+    core_index_dict = parse_dict_argument(args.core_index_dict, "core-index-dict")
+    cladding_index_dict = parse_dict_argument(
+        args.cladding_index_dict, "cladding-index-dict"
+    )
+    core_dia_dict = parse_dict_argument(args.core_dia_dict, "core-dia-dict")
+    cladding_dia_dict = parse_dict_argument(args.cladding_dia_dict, "cladding-dia-dict")
+    bg_index_dict = parse_dict_argument(args.bg_index_dict, "bg-index-dict")
 
     # Validate lantern type and required parameters
     if args.lantern_type == "photonic" and layer_config is None:
@@ -335,6 +463,18 @@ def main():
     logger.info(f"Experiment directory: {expt_dir}")
     logger.info(f"Log file: {log_path}")
     logger.info(f"Command line arguments: {vars(args)}")
+
+    # Log parsed dictionaries
+    if core_index_dict:
+        logger.info(f"Core index dictionary: {core_index_dict}")
+    if cladding_index_dict:
+        logger.info(f"Cladding index dictionary: {cladding_index_dict}")
+    if core_dia_dict:
+        logger.info(f"Core diameter dictionary: {core_dia_dict}")
+    if cladding_dia_dict:
+        logger.info(f"Cladding diameter dictionary: {cladding_dia_dict}")
+    if bg_index_dict:
+        logger.info(f"Background index dictionary: {bg_index_dict}")
 
     # Generate array of taper lengths for parametric study
     logger.info(f"Generating taper length array:")
@@ -411,6 +551,12 @@ def main():
                 taper_length=taper_length,  # Current taper length
                 highest_mode="LP02",  # Maximum mode order
                 launch_mode="LP02",  # Input mode type
+                # Pass the dictionary parameters
+                core_index_dict=core_index_dict,
+                cladding_index_dict=cladding_index_dict,
+                core_dia_dict=core_dia_dict,
+                cladding_dia_dict=cladding_dia_dict,
+                bg_index_dict=bg_index_dict,
                 logger=logger,  # Pass logger instance
                 mode_output="OUTPUT_NONE",
                 file_name_dim=taper_filename,

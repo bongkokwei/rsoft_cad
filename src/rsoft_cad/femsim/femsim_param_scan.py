@@ -5,7 +5,9 @@ import os
 import time
 import argparse
 import logging
+import json
 from tqdm import tqdm
+from typing import Optional, Dict
 
 from rsoft_cad.rsoft_simulations import run_simulation
 from rsoft_cad.utils import get_next_run_folder
@@ -16,10 +18,6 @@ from rsoft_cad import (
     TaperType,
     configure_logging,
 )  # Import the configure_logging function
-
-"""
-TODO: FORCE USERS TO ADD FIBER CORE DIAMETER DICTIONARY
-"""
 
 
 def femsim_tapered_lantern(
@@ -39,6 +37,12 @@ def femsim_tapered_lantern(
     num_grid=200,
     mode_output="OUTPUT_REAL_IMAG",
     final_capillary_id=25,
+    # New dictionary parameters
+    core_index_dict=None,
+    cladding_index_dict=None,
+    core_dia_dict=None,
+    cladding_dia_dict=None,
+    bg_index_dict=None,
     logger=None,
 ):
     """
@@ -81,6 +85,16 @@ def femsim_tapered_lantern(
         Format for mode output (e.g., OUTPUT_REAL_IMAG)
     final_capillary_id : int
         Final capillary ID for the structure
+    core_index_dict : Dict[str, float], optional
+        Dictionary mapping modes/cores to core refractive indices
+    cladding_index_dict : Dict[str, float], optional
+        Dictionary mapping modes/cores to cladding refractive indices
+    core_dia_dict : Dict[str, float], optional
+        Dictionary mapping modes/cores to core diameters in micrometers
+    cladding_dia_dict : Dict[str, float], optional
+        Dictionary mapping modes/cores to cladding diameters in micrometers
+    bg_index_dict : Dict[str, float], optional
+        Dictionary mapping modes/cores to background refractive indices
     logger : logging.Logger
         Logger instance
     """
@@ -93,6 +107,18 @@ def femsim_tapered_lantern(
         f"Configuration: taper_factor={taper_factor}, taper_length={taper_length}, "
         f"num_points={num_points}, highest_mode={highest_mode}, launch_mode={launch_mode}"
     )
+
+    # Log dictionary parameters if provided
+    if core_index_dict:
+        logger.info(f"Using custom core indices: {core_index_dict}")
+    if cladding_index_dict:
+        logger.info(f"Using custom cladding indices: {cladding_index_dict}")
+    if core_dia_dict:
+        logger.info(f"Using custom core diameters: {core_dia_dict}")
+    if cladding_dia_dict:
+        logger.info(f"Using custom cladding diameters: {cladding_dia_dict}")
+    if bg_index_dict:
+        logger.info(f"Using custom background indices: {bg_index_dict}")
 
     taper_scan_array = np.linspace(
         start_pos,
@@ -142,6 +168,12 @@ def femsim_tapered_lantern(
         mode_output=mode_output,
         final_capillary_id=final_capillary_id,
         num_pads=50,
+        # Add the dictionary parameters
+        core_index_dict=core_index_dict,
+        cladding_index_dict=cladding_index_dict,
+        core_dia_dict=core_dia_dict,
+        cladding_dia_dict=cladding_dia_dict,
+        bg_index_dict=bg_index_dict,
         **lantern_kwargs,  # Add the lantern-specific parameters
     )
     logger.debug("Configured parameterized lantern function")
@@ -193,11 +225,60 @@ def femsim_tapered_lantern(
     )
 
 
+def parse_dict_argument(dict_str: str, arg_name: str) -> Optional[Dict[str, float]]:
+    """
+    Parse a dictionary argument from command line JSON string.
+
+    Args:
+        dict_str: JSON string representation of dictionary
+        arg_name: Name of the argument (for error messages)
+
+    Returns:
+        Dictionary mapping strings to floats, or None if input is None
+
+    Raises:
+        SystemExit: If parsing fails
+    """
+    if dict_str is None:
+        return None
+
+    try:
+        parsed_dict = json.loads(dict_str)
+        # Convert all values to float and ensure keys are strings
+        return {str(k): float(v) for k, v in parsed_dict.items()}
+    except (json.JSONDecodeError, ValueError, TypeError) as e:
+        print(f"Error parsing {arg_name}: {e}")
+        print(f'Expected format for {arg_name}: {{"key1": value1, "key2": value2}}')
+        print(f'Example: {{"LP01": 1.4504, "LP11": 1.4502, "LP02": 1.4500}}')
+        exit(1)
+
+
 def femsimulation():
     """Parse command line arguments and run lantern simulations."""
 
     parser = argparse.ArgumentParser(
-        description="Run lantern simulations to analyse effective refractive index."
+        description="Run lantern simulations to analyse effective refractive index.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Basic mode selective lantern
+  python femsim_param_scan.py --lantern-type mode_selective --highest-mode LP02
+
+  # Photonic lantern with custom layer configuration
+  python femsim_param_scan.py --lantern-type photonic --layer-config "[[1, 1.0], [6, 1.0]]"
+
+  # Mode selective with custom optical properties
+  python femsim_param_scan.py --lantern-type mode_selective --highest-mode LP11 \\
+    --core-index-dict '{"LP01": 1.4504, "LP11": 1.4502}' \\
+    --cladding-index-dict '{"LP01": 1.4446, "LP11": 1.4446}' \\
+    --core-dia-dict '{"LP01": 8.2, "LP11": 8.0}'
+
+  # Photonic lantern with graded index profile
+  python femsim_param_scan.py --lantern-type photonic \\
+    --layer-config "[[1, 1.0], [6, 1.0], [12, 1.0]]" \\
+    --core-index-dict '{"0": 1.4504, "1": 1.4502, "2": 1.4500}' \\
+    --core-dia-dict '{"0": 8.2, "1": 8.0, "2": 7.8}'
+        """,
     )
 
     # Add lantern type argument
@@ -214,6 +295,42 @@ def femsimulation():
         type=str,
         help="Layer config for photonic lanterns as JSON string. "
         'Example: "[[1, 1.0], [6, 1.0], [12, 1.0]]" for 1 center + 6 inner + 12 outer cores',
+    )
+
+    # Add dictionary arguments for optical properties
+    parser.add_argument(
+        "--core-index-dict",
+        type=str,
+        help="Core refractive index dictionary as JSON string. "
+        'Example: {"LP01": 1.4504, "LP11": 1.4502, "LP02": 1.4500}',
+    )
+
+    parser.add_argument(
+        "--cladding-index-dict",
+        type=str,
+        help="Cladding refractive index dictionary as JSON string. "
+        'Example: {"LP01": 1.4446, "LP11": 1.4446, "LP02": 1.4446}',
+    )
+
+    parser.add_argument(
+        "--core-dia-dict",
+        type=str,
+        help="Core diameter dictionary as JSON string (in micrometers). "
+        'Example: {"LP01": 8.2, "LP11": 8.0, "LP02": 7.8}',
+    )
+
+    parser.add_argument(
+        "--cladding-dia-dict",
+        type=str,
+        help="Cladding diameter dictionary as JSON string (in micrometers). "
+        'Example: {"LP01": 125.0, "LP11": 125.0, "LP02": 125.0}',
+    )
+
+    parser.add_argument(
+        "--bg-index-dict",
+        type=str,
+        help="Background refractive index dictionary as JSON string. "
+        'Example: {"LP01": 1.0, "LP11": 1.0, "LP02": 1.0}',
     )
 
     parser.add_argument(
@@ -312,8 +429,6 @@ def femsimulation():
     layer_config = None
     if args.layer_config:
         try:
-            import json
-
             layer_config_raw = json.loads(args.layer_config)
             # Convert to list of tuples
             layer_config = [(int(n), float(r)) for n, r in layer_config_raw]
@@ -321,6 +436,15 @@ def femsimulation():
             print(f"Error parsing layer-config: {e}")
             print('Expected format: "[[1, 1.0], [6, 1.0], [12, 1.0]]"')
             exit(1)
+
+    # Parse dictionary arguments
+    core_index_dict = parse_dict_argument(args.core_index_dict, "core-index-dict")
+    cladding_index_dict = parse_dict_argument(
+        args.cladding_index_dict, "cladding-index-dict"
+    )
+    core_dia_dict = parse_dict_argument(args.core_dia_dict, "core-dia-dict")
+    cladding_dia_dict = parse_dict_argument(args.cladding_dia_dict, "cladding-dia-dict")
+    bg_index_dict = parse_dict_argument(args.bg_index_dict, "bg-index-dict")
 
     # Validate lantern type and required parameters
     if args.lantern_type == "photonic" and layer_config is None:
@@ -345,6 +469,18 @@ def femsimulation():
         logger.info(f"Set logging level to {args.log_level}")
 
     logger.info(f"Parsed arguments: {vars(args)}")
+
+    # Log parsed dictionaries
+    if core_index_dict:
+        logger.info(f"Core index dictionary: {core_index_dict}")
+    if cladding_index_dict:
+        logger.info(f"Cladding index dictionary: {cladding_index_dict}")
+    if core_dia_dict:
+        logger.info(f"Core diameter dictionary: {core_dia_dict}")
+    if cladding_dia_dict:
+        logger.info(f"Cladding diameter dictionary: {cladding_dia_dict}")
+    if bg_index_dict:
+        logger.info(f"Background index dictionary: {bg_index_dict}")
 
     # Custom taper profile name
     file_name_dim = "custom_profile_dim.txt"
@@ -399,6 +535,12 @@ def femsimulation():
                 file_name_dim=file_name_dim,
                 data_dir=args.data_dir,
                 final_capillary_id=args.final_capillary_id,
+                # Pass the dictionary parameters
+                core_index_dict=core_index_dict,
+                cladding_index_dict=cladding_index_dict,
+                core_dia_dict=core_dia_dict,
+                cladding_dia_dict=cladding_dia_dict,
+                bg_index_dict=bg_index_dict,
                 logger=logger,
             )
             logger.info(f"Completed simulation for capillary id {cap_id}")
